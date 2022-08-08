@@ -1,0 +1,37 @@
+name: heaven
+main: com.gbaranski.heaven.Main
+author: gbaranski
+api-version: 1.19
+version: 1.0
+
+commands:
+  heaven:
+    description: Heaven settings
+    usage: /<command> <add|remove|info|list|reload>
+
+permissions:
+  heaven.angel.add:
+    description: Allows adding angels to heaven
+  heaven.angel.remove:
+    description: Allows removing angels from heaven
+  heaven.angel.info:
+    description: Allows retrieving information about angel
+  heaven.angel.list:
+    description: Allows listing angels
+
+  heaven.reload:
+    description: Reloads configuration
+
+  heaven.angel.*:
+    description: Allows doing everything with angels
+    children:
+      heaven.angel.add: true
+      heaven.angel.remove: true
+      heaven.angel.info: true
+      heaven.angel.list: true
+  heaven.*:
+    description: Allows doing everything in heaven!
+    default: op
+    children:
+      heaven.angel.*: true
+      heaven.reload: true
