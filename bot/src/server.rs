@@ -5,7 +5,13 @@ use crate::{
     models::{Angel, AngelID},
     store::{Authorization, Store},
 };
-use axum::{extract::{Path, Query}, http::StatusCode, routing::get, Extension, Json, Router};
+use axum::{
+    extract::{Path, Query},
+    http::StatusCode,
+    routing::get,
+    Extension, Json, Router,
+};
+use serde::Deserialize;
 use serenity::{http::Http, model::prelude::component::ButtonStyle};
 use tower_http::{
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
@@ -59,10 +65,15 @@ async fn get_angel_by_minecraft_name(
     Json(angel)
 }
 
+#[derive(Deserialize)]
+struct AuthorizeQuery {
+    from: SocketAddr,
+}
+
 async fn authorize_angel(
     Extension(app_state): Extension<AppState>,
     Path(angel_id): Path<AngelID>,
-    Query(from): Query<SocketAddr>,
+    Query(AuthorizeQuery { from }): Query<AuthorizeQuery>,
 ) -> StatusCode {
     let angel = app_state.database.get_angel_by_id(&angel_id);
     let angel = match angel {
