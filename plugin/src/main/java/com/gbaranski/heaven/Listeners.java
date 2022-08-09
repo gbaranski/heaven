@@ -13,20 +13,25 @@ public class Listeners implements Listener {
     public void onJoin(PlayerLoginEvent e){
 
         Player p = e.getPlayer();
-        Angel angel;
         try {
-            angel = Main.get().getClient().fetchAngel(p.getName());
+            Angel angel = Main.get().getClient().fetchAngel(p.getName());
+            if (angel == null) {
+                e.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, "User not on whitelist");
+            } else {
+                if (!Main.get().getClient().authorize(angel.id)) {
+                    e.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, "Login denied from Discord");
+                    return;
+                }
+                final String nickname = angel.discordName;
+                p.setPlayerListName(nickname);
+                p.setDisplayName(nickname);
+                p.setCustomName(nickname);
+                p.setCustomNameVisible(true);
+            }
+
         } catch (IOException | URISyntaxException ex) {
+            e.disallow(PlayerLoginEvent.Result.KICK_OTHER, "Authorization service was not available");
             throw new RuntimeException(ex);
-        }
-        if (angel == null) {
-            e.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, "User not on whitelist");
-        } else {
-            final String nickname = angel.discordName;
-            p.setPlayerListName(nickname);
-            p.setDisplayName(nickname);
-            p.setCustomName(nickname);
-            p.setCustomNameVisible(true);
         }
     }
 }

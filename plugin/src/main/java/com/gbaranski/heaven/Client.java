@@ -38,6 +38,6 @@ public class Client {
         HttpURLConnection con = (HttpURLConnection) uri.toURL().openConnection();
         con.setRequestMethod("GET");
         con.connect();
-        return con.getResponseCode() == 200
+        return con.getResponseCode() == 200;
     }
 }
