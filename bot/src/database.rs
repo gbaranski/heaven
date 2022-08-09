@@ -1,4 +1,4 @@
-use crate::models::{MinecraftType, User, UserID};
+use crate::models::{MinecraftType, Angel, AngelID};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{OptionalExtension, ToSql};
@@ -26,7 +26,7 @@ impl Database {
             .unwrap()
             .execute(
                 "
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE IF NOT EXISTS angels (
                 id TEXT PRIMARY KEY,
                 discord_id TEXT NOT NULL UNIQUE,
                 discord_name TEXT NOT NULL,
@@ -39,16 +39,16 @@ impl Database {
             .unwrap();
     }
 
-    fn get_user_by(&self, selector: &'static str, by: impl ToSql) -> Option<User> {
+    fn get_angel_by(&self, selector: &'static str, by: impl ToSql) -> Option<Angel> {
         let connection = self.pool.get().unwrap();
 
         let mut query = connection
-            .prepare(&format!("SELECT * FROM users WHERE {selector}=?"))
+            .prepare(&format!("SELECT * FROM angels WHERE {selector}=?"))
             .unwrap();
         query
             .query_row([by], |row| {
-                Ok(User {
-                    id: UserID::from_str(row.get::<_, String>("id")?.as_str()).unwrap(),
+                Ok(Angel {
+                    id: AngelID::from_str(row.get::<_, String>("id")?.as_str()).unwrap(),
                     discord_id: DiscordUserID::from_str(row.get::<_, String>("discord_id")?.as_str()).unwrap(),
                     discord_name: row.get("discord_name")?,
                     minecraft_name: row.get("minecraft_name")?,
@@ -59,15 +59,15 @@ impl Database {
             .unwrap()
     }
 
-    pub fn get_user_by_discord_id(&self, discord_id: DiscordUserID) -> Option<User> {
-        self.get_user_by("discord_id", discord_id.as_u64())
+    pub fn get_angel_by_discord_id(&self, discord_id: DiscordUserID) -> Option<Angel> {
+        self.get_angel_by("discord_id", discord_id.as_u64())
     }
 
-    pub fn get_user_by_minecraft_name(&self, minecraft_name: &str) -> Option<User> {
-        self.get_user_by("minecraft_name", minecraft_name)
+    pub fn get_angel_by_minecraft_name(&self, minecraft_name: &str) -> Option<Angel> {
+        self.get_angel_by("minecraft_name", minecraft_name)
     }
 
-    pub fn insert_user(&self, user: &User) {
+    pub fn insert_angel(&self, angel: &Angel) {
         let n = self
             .pool
             .get()
@@ -89,11 +89,11 @@ impl Database {
             )
                 ",
                 &[
-                    &user.id.to_string(),
-                    &user.discord_id.to_string(),
-                    &user.discord_name,
-                    &user.minecraft_name,
-                    &user.minecraft_type.to_string(),
+                    &angel.id.to_string(),
+                    &angel.discord_id.to_string(),
+                    &angel.discord_name,
+                    &angel.minecraft_name,
+                    &angel.minecraft_type.to_string(),
                 ],
             )
             .unwrap();

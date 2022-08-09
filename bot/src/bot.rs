@@ -1,7 +1,7 @@
 use crate::database::Database;
 use crate::models::MinecraftType;
-use crate::models::User;
-use crate::models::UserID;
+use crate::models::Angel;
+use crate::models::AngelID;
 use serenity::async_trait;
 use serenity::builder::{CreateActionRow, CreateButton, CreateSelectMenu, CreateSelectMenuOption};
 use serenity::client::{Context, EventHandler};
@@ -231,7 +231,7 @@ impl EventHandler for Bot {
             },
             Interaction::MessageComponent(mc) => match mc.data.custom_id.as_str() {
                 "register" => {
-                    if let Some(user) = self.database.get_user_by_discord_id(mc.user.id) {
+                    if let Some(user) = self.database.get_angel_by_discord_id(mc.user.id) {
                         mc.create_interaction_response(&ctx, |i| {
                             i.interaction_response_data(|d| {
                                 d.ephemeral(true).content(format!(
@@ -288,7 +288,7 @@ impl EventHandler for Bot {
             },
             Interaction::ModalSubmit(submission) => match submission.data.custom_id.as_str() {
                 "registration" => {
-                    if let Some(user) = self.database.get_user_by_discord_id(submission.user.id) {
+                    if let Some(user) = self.database.get_angel_by_discord_id(submission.user.id) {
                         submission
                             .create_interaction_response(&ctx, |i| {
                                 i.interaction_response_data(|d| {
@@ -324,7 +324,7 @@ impl EventHandler for Bot {
                         panic!("invalid component type");
                     };
 
-                    if let Some(user) = self.database.get_user_by_minecraft_name(&minecraft_name) {
+                    if let Some(user) = self.database.get_angel_by_minecraft_name(&minecraft_name) {
                         submission
                             .create_interaction_response(&ctx, |i| {
                                 i.interaction_response_data(|d| {
@@ -338,8 +338,8 @@ impl EventHandler for Bot {
                             .unwrap();
                         return;
                     }
-                    let user = User {
-                        id: UserID::new_v4(),
+                    let angel = Angel {
+                        id: AngelID::new_v4(),
                         discord_id: submission.user.id,
                         discord_name: submission
                             .user
@@ -349,7 +349,7 @@ impl EventHandler for Bot {
                         minecraft_type,
                         minecraft_name,
                     };
-                    self.database.insert_user(&user);
+                    self.database.insert_angel(&angel);
                     submission.create_interaction_response(&ctx, |i| {
                         i.interaction_response_data(|d| {
                             d.ephemeral(true).content("Thanks for registering! You should be able to log in into your Minecraft account now.")

@@ -2,12 +2,12 @@ use serenity::model::prelude::UserId;
 use serde::Serialize;
 use serde::Deserialize;
 
-pub type UserID = uuid::Uuid;
+pub type AngelID = uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all="kebab-case")]
-pub struct User {
-    pub id: UserID,
+pub struct Angel {
+    pub id: AngelID,
     pub discord_id: UserId,
     pub discord_name: String,
     pub minecraft_name: String,
