@@ -1,3 +1,6 @@
+use crate::database::Database;
+use crate::models::MinecraftType;
+use crate::models::User;
 use serenity::async_trait;
 use serenity::builder::{CreateActionRow, CreateButton, CreateSelectMenu, CreateSelectMenuOption};
 use serenity::client::{Context, EventHandler};
@@ -13,18 +16,6 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::str::FromStr;
 use std::time::Duration;
-
-#[derive(Debug)]
-struct MinecraftUser {
-    nickname: String,
-    account_type: AccountType,
-}
-
-#[derive(Debug)]
-enum AccountType {
-    Premium,
-    Cracked,
-}
 
 fn register_button() -> CreateButton {
     let mut b = CreateButton::default();
@@ -188,10 +179,12 @@ impl FromStr for Sound {
     }
 }
 
-pub struct Handler;
+pub struct Bot {
+    database: Database,
+}
 
 #[async_trait]
-impl EventHandler for Handler {
+impl EventHandler for Bot {
     async fn ready(&self, ctx: Context, ready: Ready) {
         use serenity::model::application::command::Command;
 
@@ -246,9 +239,8 @@ impl EventHandler for Handler {
                                     m.components(|c| {
                                         c.create_action_row(|ar| {
                                             ar.create_input_text(|it| {
-                                                it.placeholder("Enter your Minecraft nickname")
-                                                    .label("nickname")
-                                                    .custom_id("nickname")
+                                                it.placeholder("Enter your Minecraft account-name")
+                                                    .custom_id("minecraft-name")
                                                     .required(true)
                                                     .style(InputTextStyle::Short)
                                             });
@@ -257,7 +249,7 @@ impl EventHandler for Handler {
                                         c.create_action_row(|ar| {
                                             ar.create_select_menu(|sm| {
                                                 sm.placeholder("Type of Minecraft account")
-                                                    .custom_id("account-type")
+                                                    .custom_id("minecraft-type")
                                                     .options(|o| {
                                                         o.create_option(|o| {
                                                             o.value("premium").label("Premium")
@@ -285,31 +277,37 @@ impl EventHandler for Handler {
             }
             Interaction::ModalSubmit(submission) => match submission.data.custom_id.as_str() {
                 "registration" => {
-                    let nickname_row = &submission.data.components[0].components[0];
-                    let nickname = if let ActionRowComponent::InputText(component) = nickname_row {
-                        assert_eq!(component.custom_id, "nickname");
+                    let minecraft_name = if let ActionRowComponent::InputText(component) =
+                        &submission.data.components[0].components[0]
+                    {
+                        assert_eq!(component.custom_id, "minecraft-name");
                         component.value.clone()
                     } else {
                         panic!("invalid component type");
                     };
-                    let premium_row = &submission.data.components[1].components[0];
-                    let account_type =
-                        if let ActionRowComponent::SelectMenu(component) = premium_row {
-                            assert_eq!(component.custom_id.as_ref().unwrap(), "variant");
-                            assert_eq!(component.values.len(), 1);
-                            match component.values[0].as_str() {
-                                "premium" => AccountType::Premium,
-                                "cracked" => AccountType::Cracked,
-                                other => panic!("invalid account type: {other}"),
-                            }
-                        } else {
-                            panic!("invalid component type");
-                        };
-                    let minecraft_user = MinecraftUser {
-                        nickname,
-                        account_type,
+                    let minecraft_type = if let ActionRowComponent::SelectMenu(component) =
+                        &submission.data.components[1].components[0]
+                    {
+                        assert_eq!(component.custom_id.as_ref().unwrap(), "minecraft-type");
+                        assert_eq!(component.values.len(), 1);
+                        match component.values[0].as_str() {
+                            "premium" => MinecraftType::Premium,
+                            "cracked" => MinecraftType::Cracked,
+                            other => panic!("invalid account type: {other}"),
+                        }
+                    } else {
+                        panic!("invalid component type");
                     };
-                    dbg!(&minecraft_user);
+                    let account = User {
+                        discord_id: submission.user.id.to_string(),
+                        discord_name: submission
+                            .user
+                            .nick_in(&ctx, submission.guild_id.unwrap())
+                            .await
+                            .unwrap_or_else(|| submission.user.name.clone()),
+                        minecraft_type,
+                        minecraft_name,
+                    };
                     submission.create_followup_message(&ctx, |m| {
                         m.content("Thanks for registering! You should be able to log in into your Minecraft account now.")
                     }).await.unwrap();
@@ -391,5 +389,11 @@ impl EventHandler for Handler {
 
         // Delete the orig message or there will be dangling components
         m.delete(&ctx).await.unwrap()
+    }
+}
+
+impl Bot {
+    pub fn new(database: Database) -> Self {
+        Self { database }
     }
 }
