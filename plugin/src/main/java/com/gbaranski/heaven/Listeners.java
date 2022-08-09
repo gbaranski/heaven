@@ -6,6 +6,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerLoginEvent;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 public class Listeners implements Listener {
     @EventHandler
@@ -15,7 +16,7 @@ public class Listeners implements Listener {
         Angel angel;
         try {
             angel = Main.get().getClient().fetchAngel(p.getName());
-        } catch (IOException ex) {
+        } catch (IOException | URISyntaxException ex) {
             throw new RuntimeException(ex);
         }
         if (angel == null) {

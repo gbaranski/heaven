@@ -16,26 +16,26 @@ import java.util.Objects;
 import java.util.Set;
 
 public class Storage {
-    private URI serverURI;
+    private URL serverURL;
 
     public Storage() {
-        serverURI = null;
+        serverURL = null;
         try {
             this.reload();
-        } catch (URISyntaxException e) {
+        } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
     }
 
 
-    public void reload() throws URISyntaxException {
+    public void reload() throws MalformedURLException {
         Main.get().reloadConfig();
         final FileConfiguration config = Main.get().getConfig();
-        serverURI = new URI(Objects.requireNonNull(config.getString("server-url")));
+        serverURL = new URL(Objects.requireNonNull(config.getString("server-url")));
         Main.get().getLogger().info("Config reloaded");
     }
 
-    public URI getServerURI() {
-        return this.serverURI;
+    public URL getServerURL() {
+        return this.serverURL;
     }
 }
