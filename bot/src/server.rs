@@ -11,7 +11,7 @@ struct AppState {
 pub async fn run(address: SocketAddr, database: Database) {
     let app_state = AppState { database };
     let app = Router::new()
-        .route("/angel/:minecraft_name", get(get_angel))
+        .route("/angel/by-minecraft-name/:minecraft_name", get(get_angel))
         .layer(Extension(app_state));
     tracing::debug!("listening on {}", address);
     axum::Server::bind(&address)
