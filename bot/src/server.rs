@@ -67,7 +67,7 @@ async fn get_angel_by_minecraft_name(
 
 #[derive(Deserialize)]
 struct AuthorizeQuery {
-    from: SocketAddr,
+    from: std::net::IpAddr,
 }
 
 async fn authorize_angel(
