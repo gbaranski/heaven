@@ -63,6 +63,7 @@ async fn main() {
         data.insert::<ShardManagerContainer>(client.shard_manager.clone());
     }
     let shard_manager = client.shard_manager.clone();
+    
 
     
     tokio::spawn(async move {

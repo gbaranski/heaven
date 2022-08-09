@@ -1,15 +1,45 @@
-use std::error::Error as StdError;
-use std::str::FromStr;
-use std::time::Duration;
-use std::fmt;
 use serenity::async_trait;
 use serenity::builder::{CreateActionRow, CreateButton, CreateSelectMenu, CreateSelectMenuOption};
 use serenity::client::{Context, EventHandler};
 use serenity::futures::StreamExt;
 use serenity::model::application::component::ButtonStyle;
+use serenity::model::application::component::InputTextStyle;
+use serenity::model::application::interaction::Interaction;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::channel::Message;
+use serenity::model::prelude::component::ActionRowComponent;
 use serenity::model::prelude::{Ready, ResumedEvent};
+use std::error::Error as StdError;
+use std::fmt;
+use std::str::FromStr;
+use std::time::Duration;
+
+#[derive(Debug)]
+struct MinecraftUser {
+    nickname: String,
+    account_type: AccountType,
+}
+
+#[derive(Debug)]
+enum AccountType {
+    Premium,
+    Cracked,
+}
+
+fn register_button() -> CreateButton {
+    let mut b = CreateButton::default();
+    b.custom_id("register");
+    b.label("Register");
+    b.style(ButtonStyle::Primary);
+    b
+}
+
+fn action_row() -> CreateActionRow {
+    let mut ar = CreateActionRow::default();
+    // We can add up to 5 buttons per action row
+    ar.add_button(register_button());
+    ar
+}
 
 #[derive(Debug)]
 enum Animal {
@@ -162,12 +192,134 @@ pub struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, _: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
+        use serenity::model::application::command::Command;
+
+        let _ = Command::create_global_application_command(&ctx.http, |command| {
+            command
+                .name("announce")
+                .description("Announce a message to the channel")
+        })
+        .await;
+
         tracing::info!("Connected as {}", ready.user.name);
     }
 
     async fn resume(&self, _: Context, _: ResumedEvent) {
         tracing::info!("Resumed");
+    }
+
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        tracing::info!("interaction: {interaction:?}");
+        match interaction {
+            Interaction::ApplicationCommand(command) => match command.data.name.as_str() {
+                "announce" => {
+                    command
+                        .channel_id
+                        .send_message(&ctx, |m| {
+                            m.content("Hello!")
+                                .components(|c| c.add_action_row(action_row()))
+                        })
+                        .await
+                        .unwrap();
+                    command
+                        .create_interaction_response(&ctx, |f| {
+                            f.interaction_response_data(|f| {
+                                f.ephemeral(true)
+                                    .content(format!("Send annoucment onto {}", command.channel_id))
+                            })
+                        })
+                        .await
+                        .unwrap();
+                }
+                other => {
+                    tracing::error!("unknown command name: {other}");
+                }
+            },
+            Interaction::MessageComponent(mc) => {
+                dbg!(&mc);
+                match mc.data.custom_id.as_str() {
+                    "register" => {
+                        mc.create_interaction_response(&ctx, |i| {
+                            i.kind(InteractionResponseType::Modal)
+                                .interaction_response_data(|m| {
+                                    m.components(|c| {
+                                        c.create_action_row(|ar| {
+                                            ar.create_input_text(|it| {
+                                                it.placeholder("Enter your Minecraft nickname")
+                                                    .label("nickname")
+                                                    .custom_id("nickname")
+                                                    .required(true)
+                                                    .style(InputTextStyle::Short)
+                                            });
+                                            ar
+                                        });
+                                        c.create_action_row(|ar| {
+                                            ar.create_select_menu(|sm| {
+                                                sm.placeholder("Type of Minecraft account")
+                                                    .custom_id("account-type")
+                                                    .options(|o| {
+                                                        o.create_option(|o| {
+                                                            o.value("premium").label("Premium")
+                                                        });
+                                                        o.create_option(|o| {
+                                                            o.value("Cracked").label("Cracked")
+                                                        });
+                                                        o
+                                                    })
+                                            })
+                                        });
+                                        c
+                                    })
+                                    .title("Minecraft user registration")
+                                    .custom_id("registration")
+                                })
+                        })
+                        .await
+                        .unwrap();
+                    }
+                    other => {
+                        tracing::error!("unknown message component id: {other}");
+                    }
+                }
+            }
+            Interaction::ModalSubmit(submission) => match submission.data.custom_id.as_str() {
+                "registration" => {
+                    let nickname_row = &submission.data.components[0].components[0];
+                    let nickname = if let ActionRowComponent::InputText(component) = nickname_row {
+                        assert_eq!(component.custom_id, "nickname");
+                        component.value.clone()
+                    } else {
+                        panic!("invalid component type");
+                    };
+                    let premium_row = &submission.data.components[1].components[0];
+                    let account_type =
+                        if let ActionRowComponent::SelectMenu(component) = premium_row {
+                            assert_eq!(component.custom_id.as_ref().unwrap(), "variant");
+                            assert_eq!(component.values.len(), 1);
+                            match component.values[0].as_str() {
+                                "premium" => AccountType::Premium,
+                                "cracked" => AccountType::Cracked,
+                                other => panic!("invalid account type: {other}"),
+                            }
+                        } else {
+                            panic!("invalid component type");
+                        };
+                    let minecraft_user = MinecraftUser {
+                        nickname,
+                        account_type,
+                    };
+                    dbg!(&minecraft_user);
+                    submission.create_followup_message(&ctx, |m| {
+                        m.content("Thanks for registering! You should be able to log in into your Minecraft account now.")
+                    }).await.unwrap();
+                }
+                other => {
+                    tracing::error!("unknown modal submission id: {other}");
+                }
+            },
+            _ => {}
+        }
     }
 
     async fn message(&self, ctx: Context, msg: Message) {
