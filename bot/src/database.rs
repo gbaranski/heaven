@@ -74,7 +74,7 @@ impl Database {
             .unwrap()
             .execute(
                 "
-            INSERT INTO users (
+            INSERT INTO angels (
                 id,
                 discord_id,
                 discord_name,
