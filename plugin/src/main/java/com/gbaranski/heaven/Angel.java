@@ -1,22 +1,17 @@
 package com.gbaranski.heaven;
 
-import org.bukkit.ChatColor;
-import org.bukkit.configuration.serialization.ConfigurationSerializable;
-import org.jetbrains.annotations.NotNull;
+import com.google.gson.annotations.SerializedName;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.UUID;
 
 public class Angel {
-    public String firstName;
-    public String lastName;
-
-    public Angel(String _firstName, String _lastName) {
-        firstName = _firstName;
-        lastName = _lastName;
-    }
-
-    public String combined(final String name) {
-        return ChatColor.translateAlternateColorCodes('&', String.format("&e%s_%s&c(&6%s&c)&f", firstName, lastName, name));
-    }
+    public UUID id;
+    @SerializedName(value = "discord-id")
+    public String discordID;
+    @SerializedName(value = "discord-name")
+    public String discordName;
+    @SerializedName(value = "minecraft-name")
+    public String minecraftName;
+    @SerializedName(value = "minecraft-type")
+    public String minecraftType;
 }

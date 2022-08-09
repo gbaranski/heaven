@@ -10,6 +10,7 @@ public final class Main extends JavaPlugin
 {
     private static Main instance;
     private Storage storage;
+    private Client client;
 
     public Main() {
         Main.instance = this;
@@ -24,13 +25,13 @@ public final class Main extends JavaPlugin
         this.getConfig().options().copyDefaults(true);
         this.saveDefaultConfig();
         this.storage = new Storage();
-        Objects.requireNonNull(this.getCommand("heaven")).setExecutor(new HeavenCommand());
+        this.client = new Client();
         this.getServer().getPluginManager().registerEvents(new Listeners(), this);
         this.getLogger().info("Plugin enabled");
     }
 
     public void onDisable() {
-        this.storage.saveAngels();
+//        this.storage.save();
         this.getLogger().info("Plugin disabled");
     }
 
@@ -40,5 +41,9 @@ public final class Main extends JavaPlugin
 
     public Storage getStorage() {
         return this.storage;
+    }
+
+    public Client getClient() {
+        return this.client;
     }
 }
