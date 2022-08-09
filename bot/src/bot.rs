@@ -1,7 +1,8 @@
 use crate::database::Database;
-use crate::models::MinecraftType;
 use crate::models::Angel;
 use crate::models::AngelID;
+use crate::models::MinecraftType;
+use crate::store::Store;
 use serenity::async_trait;
 use serenity::builder::{CreateActionRow, CreateButton};
 use serenity::client::{Context, EventHandler};
@@ -29,12 +30,14 @@ fn action_row() -> CreateActionRow {
 
 pub struct Bot {
     database: Database,
+    store: Store,
 }
 
 #[async_trait]
 impl EventHandler for Bot {
     async fn ready(&self, ctx: Context, ready: Ready) {
         use serenity::model::application::command::Command;
+        tokio::spawn(async move {});
 
         let _ = Command::create_global_application_command(&ctx.http, |command| {
             command
@@ -129,6 +132,38 @@ impl EventHandler for Bot {
                     .await
                     .unwrap();
                 }
+                "authorization/allow" => {
+                    let success = self.store.allow(mc.user.id);
+                    let message = if success {
+                        "Authorization allowed! ✅"
+                    } else {
+                        "Error: Authorization expired or already allowed!"
+                    };
+                    mc.create_interaction_response(&ctx, |i| {
+                        i.interaction_response_data(|d| {
+                            d.ephemeral(true)
+                                .content(message)
+                        })
+                    })
+                    .await
+                    .unwrap();
+                }
+                "authorization/deny" => {
+                    let success = self.store.deny(mc.user.id);
+                    let message = if success {
+                        "Authorization denied! ❌"
+                    } else {
+                        "Error: Authorization expired or already denied!"
+                    };
+                    mc.create_interaction_response(&ctx, |i| {
+                        i.interaction_response_data(|d| {
+                            d.ephemeral(true)
+                                .content(message)
+                        })
+                    })
+                    .await
+                    .unwrap();
+                }
                 other => {
                     tracing::error!("unknown message component id: {other}");
                 }
@@ -213,7 +248,7 @@ impl EventHandler for Bot {
 }
 
 impl Bot {
-    pub fn new(database: Database) -> Self {
-        Self { database }
+    pub fn new(database: Database, store: Store) -> Self {
+        Self { database, store }
     }
 }

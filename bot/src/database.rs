@@ -67,6 +67,10 @@ impl Database {
         self.get_angel_by("minecraft_name", minecraft_name)
     }
 
+    pub fn get_angel_by_id(&self, id: &AngelID) -> Option<Angel> {
+        self.get_angel_by("id", id.to_string())
+    }
+
     pub fn insert_angel(&self, angel: &Angel) {
         let n = self
             .pool
