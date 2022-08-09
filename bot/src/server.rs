@@ -2,7 +2,7 @@ use std::{net::SocketAddr, sync::Arc};
 
 use crate::{
     database::Database,
-    models::{Angel, AngelID},
+    models::Angel,
     store::{Authorization, Store},
 };
 use axum::{
@@ -37,7 +37,10 @@ pub async fn run(address: SocketAddr, database: Database, store: Store, discord:
             "/angel/by-minecraft-name/:minecraft_name",
             get(get_angel_by_minecraft_name),
         )
-        .route("/authorize/:angel_id", get(authorize_angel))
+        .route(
+            "/angel/by-minecraft-name/:minecraft_name/authorize",
+            get(authorize_angel_by_minecraft_name),
+        )
         .layer(Extension(app_state))
         .layer(
             TraceLayer::new_for_http()
@@ -70,12 +73,12 @@ struct AuthorizeQuery {
     from: std::net::IpAddr,
 }
 
-async fn authorize_angel(
+async fn authorize_angel_by_minecraft_name(
     Extension(app_state): Extension<AppState>,
-    Path(angel_id): Path<AngelID>,
+    Path(minecraft_name): Path<String>,
     Query(AuthorizeQuery { from }): Query<AuthorizeQuery>,
 ) -> StatusCode {
-    let angel = app_state.database.get_angel_by_id(&angel_id);
+    let angel = app_state.database.get_angel_by_minecraft_name(&minecraft_name);
     let angel = match angel {
         Some(angel) => angel,
         None => return StatusCode::UNAUTHORIZED,
