@@ -1,0 +1,19 @@
+[package]
+name = "bot"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serenity = { version = "0.11.5", default-features = false, features = [
+    "client",
+    "gateway",
+    "rustls_backend",
+    "model",
+    "collector",
+] }
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+dotenv = { version = "0.15.0" }
+tracing-subscriber = "0.3.15"
+tracing = "0.1.36"
