@@ -2,6 +2,11 @@ use std::net::SocketAddr;
 
 use crate::{database::Database, models::Angel};
 use axum::{routing::get, Extension, Json, Router, extract::Path};
+use tower_http::{
+    trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
+    LatencyUnit,
+};
+use tracing::Level;
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -12,7 +17,16 @@ pub async fn run(address: SocketAddr, database: Database) {
     let app_state = AppState { database };
     let app = Router::new()
         .route("/angel/by-minecraft-name/:minecraft_name", get(get_angel))
-        .layer(Extension(app_state));
+        .layer(Extension(app_state))
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(
+                    DefaultOnResponse::new()
+                        .level(Level::INFO)
+                        .latency_unit(LatencyUnit::Millis),
+                ),
+        );
     tracing::debug!("listening on {}", address);
     axum::Server::bind(&address)
         .serve(app.into_make_service())
