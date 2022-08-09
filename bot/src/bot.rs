@@ -1,6 +1,7 @@
 use crate::database::Database;
 use crate::models::MinecraftType;
 use crate::models::User;
+use crate::models::UserID;
 use serenity::async_trait;
 use serenity::builder::{CreateActionRow, CreateButton, CreateSelectMenu, CreateSelectMenuOption};
 use serenity::client::{Context, EventHandler};
@@ -230,7 +231,7 @@ impl EventHandler for Bot {
             },
             Interaction::MessageComponent(mc) => match mc.data.custom_id.as_str() {
                 "register" => {
-                    if let Some(user) = self.database.get_user(mc.user.id) {
+                    if let Some(user) = self.database.get_user_by_discord_id(mc.user.id) {
                         mc.create_interaction_response(&ctx, |i| {
                             i.interaction_response_data(|d| {
                                 d.ephemeral(true).content(format!(
@@ -287,7 +288,7 @@ impl EventHandler for Bot {
             },
             Interaction::ModalSubmit(submission) => match submission.data.custom_id.as_str() {
                 "registration" => {
-                    if let Some(user) = self.database.get_user(submission.user.id) {
+                    if let Some(user) = self.database.get_user_by_discord_id(submission.user.id) {
                         submission
                             .create_interaction_response(&ctx, |i| {
                                 i.interaction_response_data(|d| {
@@ -322,7 +323,23 @@ impl EventHandler for Bot {
                     } else {
                         panic!("invalid component type");
                     };
+
+                    if let Some(user) = self.database.get_user_by_minecraft_name(&minecraft_name) {
+                        submission
+                            .create_interaction_response(&ctx, |i| {
+                                i.interaction_response_data(|d| {
+                                    d.ephemeral(true).content(format!(
+                                        "Someone's already registered under {} name!",
+                                        user.minecraft_name
+                                    ))
+                                })
+                            })
+                            .await
+                            .unwrap();
+                        return;
+                    }
                     let user = User {
+                        id: UserID::new_v4(),
                         discord_id: submission.user.id,
                         discord_name: submission
                             .user

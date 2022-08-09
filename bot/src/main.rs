@@ -1,6 +1,7 @@
 mod bot;
 mod database;
 mod models;
+mod server;
 
 use bot::Bot;
 use database::Database;
@@ -9,6 +10,7 @@ use dotenv::dotenv;
 use serenity::client::bridge::gateway::ShardManager;
 use serenity::prelude::*;
 use std::env;
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 pub struct ShardManagerContainer;
@@ -23,6 +25,13 @@ async fn main() {
     dotenv().ok();
 
     let database = Database::new("heaven.db");
+    tokio::spawn({
+        let database = database.clone();
+        async move {
+            let address = SocketAddr::from(([0, 0, 0, 0], 3000));
+            server::run(address, database).await;
+        }
+    });
     let bot = Bot::new(database);
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");

@@ -1,14 +1,21 @@
 use serenity::model::prelude::UserId;
+use serde::Serialize;
+use serde::Deserialize;
 
-#[derive(Debug)]
+pub type UserID = uuid::Uuid;
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all="kebab-case")]
 pub struct User {
+    pub id: UserID,
     pub discord_id: UserId,
     pub discord_name: String,
     pub minecraft_name: String,
     pub minecraft_type: MinecraftType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all="kebab-case")]
 pub enum MinecraftType {
     Premium,
     Cracked,
