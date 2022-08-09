@@ -16,7 +16,7 @@ struct AppState {
 pub async fn run(address: SocketAddr, database: Database) {
     let app_state = AppState { database };
     let app = Router::new()
-        .route("/angel/by-minecraft-name/:minecraft_name", get(get_angel))
+        .route("/angel/by-minecraft-name/:minecraft_name", get(get_angel_by_minecraft_name))
         .layer(Extension(app_state))
         .layer(
             TraceLayer::new_for_http()
@@ -34,7 +34,7 @@ pub async fn run(address: SocketAddr, database: Database) {
         .unwrap();
 }
 
-async fn get_angel(
+async fn get_angel_by_minecraft_name(
     Extension(app_state): Extension<AppState>,
     Path(minecraft_name): Path<String>,
 ) -> Json<Option<Angel>> {
