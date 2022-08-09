@@ -1,6 +1,8 @@
+use serenity::model::prelude::UserId;
+
 #[derive(Debug)]
 pub struct User {
-    pub discord_id: String,
+    pub discord_id: UserId,
     pub discord_name: String,
     pub minecraft_name: String,
     pub minecraft_type: MinecraftType,

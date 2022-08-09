@@ -203,7 +203,6 @@ impl EventHandler for Bot {
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        tracing::info!("interaction: {interaction:?}");
         match interaction {
             Interaction::ApplicationCommand(command) => match command.data.name.as_str() {
                 "announce" => {
@@ -229,54 +228,79 @@ impl EventHandler for Bot {
                     tracing::error!("unknown command name: {other}");
                 }
             },
-            Interaction::MessageComponent(mc) => {
-                dbg!(&mc);
-                match mc.data.custom_id.as_str() {
-                    "register" => {
+            Interaction::MessageComponent(mc) => match mc.data.custom_id.as_str() {
+                "register" => {
+                    if let Some(user) = self.database.get_user(mc.user.id) {
                         mc.create_interaction_response(&ctx, |i| {
-                            i.kind(InteractionResponseType::Modal)
-                                .interaction_response_data(|m| {
-                                    m.components(|c| {
-                                        c.create_action_row(|ar| {
-                                            ar.create_input_text(|it| {
-                                                it.placeholder("Enter your Minecraft account-name")
-                                                    .custom_id("minecraft-name")
-                                                    .required(true)
-                                                    .style(InputTextStyle::Short)
-                                            });
-                                            ar
-                                        });
-                                        c.create_action_row(|ar| {
-                                            ar.create_select_menu(|sm| {
-                                                sm.placeholder("Type of Minecraft account")
-                                                    .custom_id("minecraft-type")
-                                                    .options(|o| {
-                                                        o.create_option(|o| {
-                                                            o.value("premium").label("Premium")
-                                                        });
-                                                        o.create_option(|o| {
-                                                            o.value("Cracked").label("Cracked")
-                                                        });
-                                                        o
-                                                    })
-                                            })
-                                        });
-                                        c
-                                    })
-                                    .title("Minecraft user registration")
-                                    .custom_id("registration")
-                                })
+                            i.interaction_response_data(|d| {
+                                d.ephemeral(true).content(format!(
+                                    "You are already registered under {} name!",
+                                    user.minecraft_name
+                                ))
+                            })
                         })
                         .await
                         .unwrap();
+                        return;
                     }
-                    other => {
-                        tracing::error!("unknown message component id: {other}");
-                    }
+                    mc.create_interaction_response(&ctx, |i| {
+                        i.kind(InteractionResponseType::Modal)
+                            .interaction_response_data(|m| {
+                                m.components(|c| {
+                                    c.create_action_row(|ar| {
+                                        ar.create_input_text(|it| {
+                                            it.placeholder("Enter your Minecraft account-name")
+                                                .label("Minecraft name")
+                                                .custom_id("minecraft-name")
+                                                .required(true)
+                                                .style(InputTextStyle::Short)
+                                        });
+                                        ar
+                                    });
+                                    c.create_action_row(|ar| {
+                                        ar.create_select_menu(|sm| {
+                                            sm.placeholder("Type of Minecraft account")
+                                                .custom_id("minecraft-type")
+                                                .options(|o| {
+                                                    o.create_option(|o| {
+                                                        o.value("premium").label("Premium")
+                                                    });
+                                                    o.create_option(|o| {
+                                                        o.value("Cracked").label("Cracked")
+                                                    });
+                                                    o
+                                                })
+                                        })
+                                    });
+                                    c
+                                })
+                                .title("Minecraft user registration")
+                                .custom_id("registration")
+                            })
+                    })
+                    .await
+                    .unwrap();
                 }
-            }
+                other => {
+                    tracing::error!("unknown message component id: {other}");
+                }
+            },
             Interaction::ModalSubmit(submission) => match submission.data.custom_id.as_str() {
                 "registration" => {
+                    if let Some(user) = self.database.get_user(submission.user.id) {
+                        submission
+                            .create_interaction_response(&ctx, |i| {
+                                i.interaction_response_data(|d| {
+                                    d.ephemeral(true).content(format!(
+                                        "You are already registered under {} name!",
+                                        user.minecraft_name
+                                    ))
+                                })
+                            })
+                            .await
+                            .unwrap();
+                        return;
+                    }
                     let minecraft_name = if let ActionRowComponent::InputText(component) =
                         &submission.data.components[0].components[0]
                     {
@@ -298,8 +322,8 @@ impl EventHandler for Bot {
                     } else {
                         panic!("invalid component type");
                     };
-                    let account = User {
-                        discord_id: submission.user.id.to_string(),
+                    let user = User {
+                        discord_id: submission.user.id,
                         discord_name: submission
                             .user
                             .nick_in(&ctx, submission.guild_id.unwrap())
@@ -308,8 +332,11 @@ impl EventHandler for Bot {
                         minecraft_type,
                         minecraft_name,
                     };
-                    submission.create_followup_message(&ctx, |m| {
-                        m.content("Thanks for registering! You should be able to log in into your Minecraft account now.")
+                    self.database.insert_user(&user);
+                    submission.create_interaction_response(&ctx, |i| {
+                        i.interaction_response_data(|d| {
+                            d.ephemeral(true).content("Thanks for registering! You should be able to log in into your Minecraft account now.")
+                        })
                     }).await.unwrap();
                 }
                 other => {
