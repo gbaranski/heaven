@@ -44,6 +44,7 @@ pub async fn run(address: SocketAddr, database: Database, store: Store, discord:
             "/angel/by-minecraft-name/:minecraft_name/authorize",
             post(authorize_angel_by_minecraft_name),
         )
+        .route("/health-check", get(health_check))
         .layer(Extension(app_state))
         .layer(
             TraceLayer::new_for_http()
@@ -59,6 +60,10 @@ pub async fn run(address: SocketAddr, database: Database, store: Store, discord:
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+async fn health_check() -> &'static str {
+    "Hello, World!"
 }
 
 async fn get_angel_by_minecraft_name(
