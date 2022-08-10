@@ -12,11 +12,12 @@ use serenity::client::bridge::gateway::ShardManager;
 use serenity::http::Http;
 use serenity::model::prelude::ChannelId;
 use serenity::prelude::*;
-use std::env;
+use std::{env, time::Duration};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
 use store::Store;
+use tokio_graceful_shutdown::{Toplevel, SubsystemHandle};
 
 pub struct ShardManagerContainer;
 
@@ -24,11 +25,8 @@ impl TypeMapKey for ShardManagerContainer {
     type Value = Arc<Mutex<ShardManager>>;
 }
 
-#[tokio::main]
-async fn main() {
-    tracing_subscriber::fmt::init();
+async fn subsystem(subsys: SubsystemHandle) -> Result<(), anyhow::Error> {
     dotenv().ok();
-
     let port = env::var("PORT")
         .map(|port| port.parse().unwrap())
         .unwrap_or(8080);
@@ -61,15 +59,30 @@ async fn main() {
     }
     let shard_manager = client.shard_manager.clone();
 
-    tokio::spawn(async move {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("Could not register ctrl+c handler");
-        server_handle.shutdown();
-        shard_manager.lock().await.shutdown_all().await;
-    });
+    tokio::select! {
+        result = client.start() => {
+            if let Err(why) = result {
+                tracing::error!("Client error: {:?}", why);
+            }
+        }
+        _ = subsys.on_shutdown_requested() => {
+            tracing::info!("shutting down");
+            server_handle.shutdown();
+            shard_manager.lock().await.shutdown_all().await;
+        }
+    };
 
-    if let Err(why) = client.start().await {
-        tracing::error!("Client error: {:?}", why);
-    }
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() ->  Result<(), anyhow::Error>  {
+    tracing_subscriber::fmt::init();
+    Toplevel::new()
+        .start("bot", subsystem)
+        .catch_signals()
+        .handle_shutdown_requests(Duration::from_secs(10))
+        .await?;
+
+    Ok(())
 }
