@@ -14,7 +14,7 @@ use axum::{
 use serde::Deserialize;
 use serenity::{
     http::Http,
-    model::prelude::{component::ButtonStyle, MessageFlags},
+    model::prelude::{component::ButtonStyle},
 };
 use tower_http::{
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
