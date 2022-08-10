@@ -28,3 +28,4 @@ tower-http = { version = "0.3.4", features = ["trace"] }
 dashmap = "5.3.4"
 axum-server = "0.4.2"
 tokio-graceful-shutdown = "0.10.1"
+envy = "0.4.2"

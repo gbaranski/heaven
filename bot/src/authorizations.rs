@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 use serenity::model::prelude::UserId as DiscordUserID;
-use std::{sync::Arc, future::Future};
+use std::{future::Future, sync::Arc};
 use tokio::sync::oneshot;
 
 #[derive(Debug)]
@@ -12,11 +12,11 @@ pub enum Authorization {
 pub type AuthorizationSender = oneshot::Sender<Authorization>;
 
 #[derive(Debug, Clone)]
-pub struct Store {
+pub struct Authorizations {
     authorizations: Arc<DashMap<DiscordUserID, Option<AuthorizationSender>>>,
 }
 
-impl Store {
+impl Authorizations {
     pub fn new() -> Self {
         Self {
             authorizations: Default::default(),
@@ -30,7 +30,7 @@ impl Store {
         }
         return false;
     }
-    
+
     pub fn allow(&self, discord_user_id: DiscordUserID) -> bool {
         self.send(discord_user_id, Authorization::Allow)
     }
@@ -38,8 +38,11 @@ impl Store {
     pub fn deny(&self, discord_user_id: DiscordUserID) -> bool {
         self.send(discord_user_id, Authorization::Deny)
     }
-    
-    pub fn get_authorization(&self, discord_user_id: DiscordUserID) -> impl Future<Output = Authorization> + '_ {
+
+    pub fn request_authorization(
+        &self,
+        discord_user_id: DiscordUserID,
+    ) -> impl Future<Output = Authorization> + '_ {
         let (sender, receiver) = oneshot::channel();
         self.authorizations.insert(discord_user_id, Some(sender));
         async move {

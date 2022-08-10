@@ -1,18 +1,28 @@
+use std::net::IpAddr;
+use std::sync::Arc;
+
+use crate::configuration::Configuration;
 use crate::database::Database;
 use crate::models::Angel;
 use crate::models::AngelID;
 use crate::models::MinecraftType;
-use crate::store::Store;
+use crate::authorizations::Authorization;
+use crate::authorizations::Authorizations;
+use crate::ShardManagerContainer;
 use serenity::async_trait;
 use serenity::builder::{CreateActionRow, CreateButton};
 use serenity::client::{Context, EventHandler};
+use serenity::http::Http;
 use serenity::model::application::component::ButtonStyle;
 use serenity::model::application::component::InputTextStyle;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::prelude::component::ActionRowComponent;
-use serenity::model::prelude::ChannelId;
+use serenity::model::prelude::UserId;
 use serenity::model::prelude::{Ready, ResumedEvent};
+use serenity::prelude::GatewayIntents;
+use serenity::Client;
+use tokio_graceful_shutdown::SubsystemHandle;
 
 fn register_button() -> CreateButton {
     let mut b = CreateButton::default();
@@ -29,39 +39,56 @@ fn action_row() -> CreateActionRow {
     ar
 }
 
-pub struct Bot {
-    whitelist_channel_id: ChannelId,
+#[derive(Debug, Clone)]
+pub struct DiscordBot {
+    configuration: Arc<Configuration>,
     database: Database,
-    store: Store,
+    authorizations: Authorizations,
+    client: Arc<Http>,
 }
 
 #[async_trait]
-impl EventHandler for Bot {
+impl EventHandler for DiscordBot {
     async fn ready(&self, ctx: Context, ready: Ready) {
+        let greeting_content =
+            "Hello! Tap the button below to register your Minecraft account within the server.";
         let previous_messages = self
+            .configuration
             .whitelist_channel_id
             .messages(&ctx, |m| m)
             .await
             .unwrap();
-        let message_ids = previous_messages
-            .iter()
+        let mut previous_messages = previous_messages
+            .into_iter()
             .filter(|m| m.author.id == ready.user.id)
-            .map(|m| m.id);
-        self.whitelist_channel_id
-            .delete_messages(&ctx, message_ids)
-            .await
-            .unwrap();
-        self.whitelist_channel_id
-            .send_message(&ctx, |m| {
-                m.content("Hello! Tap the button below to register your Minecraft account within the server.")
-                    .components(|c| c.add_action_row(action_row()))
-            })
-            .await
-            .unwrap();
+            .collect::<Vec<_>>();
+
+        if let Some((last_message, previous_messages)) = previous_messages.split_last_mut() {
+            self.configuration
+                .whitelist_channel_id
+                .delete_messages(&ctx, previous_messages)
+                .await
+                .unwrap();
+            last_message
+                .edit(&ctx, |m| {
+                    m.content(greeting_content)
+                        .components(|c| c.add_action_row(action_row()))
+                })
+                .await
+                .unwrap();
+        } else {
+            self.configuration
+                .whitelist_channel_id
+                .send_message(&ctx, |m| {
+                    m.content(greeting_content)
+                        .components(|c| c.add_action_row(action_row()))
+                })
+                .await
+                .unwrap();
+        }
 
         tracing::info!("Connected as {}", ready.user.name);
     }
-    
 
     async fn resume(&self, _: Context, _: ResumedEvent) {
         tracing::info!("Resumed");
@@ -128,7 +155,7 @@ impl EventHandler for Bot {
                     .unwrap();
                 }
                 "authorization/allow" => {
-                    let success = self.store.allow(mc.user.id);
+                    let success = self.authorizations.allow(mc.user.id);
                     let message = if success {
                         "Authorization allowed! ✅"
                     } else {
@@ -141,7 +168,7 @@ impl EventHandler for Bot {
                     .unwrap();
                 }
                 "authorization/deny" => {
-                    let success = self.store.deny(mc.user.id);
+                    let success = self.authorizations.deny(mc.user.id);
                     let message = if success {
                         "Authorization denied! ❌"
                     } else {
@@ -236,12 +263,81 @@ impl EventHandler for Bot {
     }
 }
 
-impl Bot {
-    pub fn new(database: Database, store: Store, whitelist_channel_id: ChannelId) -> Self {
+impl DiscordBot {
+    pub fn new(configuration: Arc<Configuration>, database: Database) -> Self {
+        let http = Http::new(&configuration.discord_token);
+        let authorizations = Authorizations::new();
+
         Self {
+            client: Arc::new(http),
             database,
-            store,
-            whitelist_channel_id,
+            authorizations,
+            configuration,
         }
+    }
+
+    pub async fn run(self, subsystem: SubsystemHandle) -> Result<(), anyhow::Error> {
+        let intents = GatewayIntents::GUILD_MESSAGES
+            | GatewayIntents::DIRECT_MESSAGES
+            | GatewayIntents::MESSAGE_CONTENT;
+        let mut client = Client::builder(self.configuration.discord_token.clone(), intents)
+            .event_handler(self)
+            .await
+            .expect("Error creating client");
+        {
+            let mut data = client.data.write().await;
+            data.insert::<ShardManagerContainer>(client.shard_manager.clone());
+        }
+        let shard_manager = client.shard_manager.clone();
+        tokio::select! {
+            result = client.start() => {
+                return result.map_err(|err| err.into())
+            }
+            _ = subsystem.on_shutdown_requested() => {
+                tracing::info!("Shutting down Discord Bot");
+                shard_manager.lock().await.shutdown_all().await;
+                return Ok(())
+            }
+        }
+    }
+
+    pub async fn authorize(
+        &self,
+        user_id: UserId,
+        from: IpAddr,
+    ) -> Result<Authorization, anyhow::Error> {
+        let user = self.client.get_user(user_id.0).await.unwrap();
+        let dm_channel = user.create_dm_channel(&self.client).await.unwrap();
+        let authorization = self.authorizations.request_authorization(user_id);
+        let mut message = dm_channel
+            .send_message(&self.client, |f| {
+                f.components(|c| {
+                    c.create_action_row(|ar| {
+                        ar.create_button(|b| {
+                            b.custom_id("authorization/allow")
+                                .emoji('✅')
+                                .label("Allow")
+                                .style(ButtonStyle::Primary)
+                        })
+                        .create_button(|b| {
+                            b.custom_id("authorization/deny")
+                                .emoji('❌')
+                                .label("Deny")
+                                .style(ButtonStyle::Secondary)
+                        })
+                    })
+                })
+                .content(format!(
+                    "New login request for Minecraft server from {from}."
+                ))
+            })
+            .await?;
+        let authorization = authorization.await;
+        message
+            .edit(&self.client, |f| {
+                f.components(|f| f.set_action_rows(vec![]))
+            })
+            .await?;
+        Ok(authorization)
     }
 }
