@@ -38,19 +38,24 @@ pub struct Bot {
 #[async_trait]
 impl EventHandler for Bot {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        use serenity::model::application::command::Command;
         tokio::spawn(async move {});
 
-        let _ = Command::create_global_application_command(&ctx.http, |command| {
-            command
-                .name("announce")
-                .description("Announce a message to the channel")
-        })
-        .await;
-
+        let previous_messages = self
+            .whitelist_channel_id
+            .messages(&ctx, |m| m)
+            .await
+            .unwrap();
+        let message_ids = previous_messages
+            .iter()
+            .filter(|m| m.author.id == ready.user.id)
+            .map(|m| m.id);
+        self.whitelist_channel_id
+            .delete_messages(&ctx, message_ids)
+            .await
+            .unwrap();
         self.whitelist_channel_id
             .send_message(&ctx, |m| {
-                m.content("Hello!")
+                m.content("Hello! Tap the button below to register your Minecraft account within the server.")
                     .components(|c| c.add_action_row(action_row()))
             })
             .await
@@ -58,6 +63,7 @@ impl EventHandler for Bot {
 
         tracing::info!("Connected as {}", ready.user.name);
     }
+    
 
     async fn resume(&self, _: Context, _: ResumedEvent) {
         tracing::info!("Resumed");
