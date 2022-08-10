@@ -7,10 +7,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.net.*;
 import java.util.UUID;
 
 public class Client {
@@ -32,11 +29,15 @@ public class Client {
         return gson.fromJson(element, Angel.class);
     }
 
-    @Nullable
-    public boolean authorize(UUID angelID) throws IOException, URISyntaxException {
-        final URI uri = getURL().toURI().resolve("./authorize/" + angelID);
-        HttpURLConnection con = (HttpURLConnection) uri.toURL().openConnection();
-        con.setRequestMethod("GET");
+    public boolean authorize(String name, InetAddress address) throws IOException, URISyntaxException {
+        URL baseURL = getURL();
+        String path = "angel/by-minecraft-name/" + name + "/authorize";
+        String query = "from=" + address.getHostAddress();
+
+        URI newURI = new URI(baseURL.getProtocol(), baseURL.getAuthority(), baseURL.getPath() + path, query, null);
+        Main.get().getLogger().info(newURI.toString());
+        HttpURLConnection con = (HttpURLConnection) newURI.toURL().openConnection();
+        con.setRequestMethod("POST");
         con.connect();
         return con.getResponseCode() == 200;
     }
