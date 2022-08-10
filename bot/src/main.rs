@@ -12,11 +12,11 @@ use serenity::client::bridge::gateway::ShardManager;
 use serenity::http::Http;
 use serenity::model::prelude::ChannelId;
 use serenity::prelude::*;
-use store::Store;
 use std::env;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
+use store::Store;
 
 pub struct ShardManagerContainer;
 
@@ -29,18 +29,24 @@ async fn main() {
     tracing_subscriber::fmt::init();
     dotenv().ok();
 
-    let database = Database::new("heaven.db");
-    let store = Store::new();
+    let port = env::var("PORT")
+        .map(|port| port.parse().unwrap())
+        .unwrap_or(8080);
+    let database_path = env::var("DATABASE_PATH").expect("Expected a database path in the environment");
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
-    let whitelist_channel_id = env::var("WHITELIST_CHANNEL_ID").expect("Expected a whitelist channel ID in the environment");
+    let whitelist_channel_id = env::var("WHITELIST_CHANNEL_ID")
+        .expect("Expected a whitelist channel ID in the environment");
+
     let whitelist_channel_id = ChannelId::from_str(&whitelist_channel_id).unwrap();
     let http = Http::new(&token);
+    let database = Database::new(database_path);
+    let store = Store::new();
 
     tokio::spawn({
         let database = database.clone();
         let store = store.clone();
         async move {
-            let address = SocketAddr::from(([0, 0, 0, 0], 3000));
+            let address = SocketAddr::from(([0, 0, 0, 0], port));
             server::run(address, database, store, http).await;
         }
     });
