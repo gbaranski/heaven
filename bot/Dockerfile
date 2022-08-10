@@ -17,6 +17,7 @@ RUN cargo build --release --bin heaven-bot
 
 # We do not need the Rust toolchain to run the binary!
 FROM debian:buster-slim AS runtime
+RUN apt-get update && apt-get install -y sqlite3 libsqlite3-dev
 WORKDIR /app
 COPY --from=builder /app/target/release/heaven-bot /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/heaven-bot"]
