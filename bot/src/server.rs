@@ -112,18 +112,11 @@ async fn authorize_angel_by_minecraft_name(
                             .style(ButtonStyle::Secondary)
                     })
                 })
-            }).content(format!("New login request for Minecraft server from {from}. If that's not you, please click Deny"))
+            }).content(format!("New login request for Minecraft server from {from}."))
         })
         .await
         .unwrap();
     let authorization = authorization.await;
-    message.edit(&app_state.discord, |f| {
-        let message = match authorization {
-            Authorization::Allow => format!("Authorization granted for login from {from} ✅"),
-            Authorization::Deny => format!("Authorization denied for login from {from} ❌"),
-        };
-        f.content(message)
-    }).await.unwrap();
     match authorization {
         Authorization::Allow => StatusCode::OK,
         Authorization::Deny => StatusCode::UNAUTHORIZED,

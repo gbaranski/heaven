@@ -140,10 +140,7 @@ impl EventHandler for Bot {
                         "Error: Authorization expired or already allowed!"
                     };
                     mc.create_interaction_response(&ctx, |i| {
-                        i.interaction_response_data(|d| {
-                            d.ephemeral(true)
-                                .content(message)
-                        })
+                        i.interaction_response_data(|d| d.content(message))
                     })
                     .await
                     .unwrap();
@@ -156,10 +153,7 @@ impl EventHandler for Bot {
                         "Error: Authorization expired or already denied!"
                     };
                     mc.create_interaction_response(&ctx, |i| {
-                        i.interaction_response_data(|d| {
-                            d.ephemeral(true)
-                                .content(message)
-                        })
+                        i.interaction_response_data(|d| d.content(message))
                     })
                     .await
                     .unwrap();
