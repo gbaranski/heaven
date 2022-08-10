@@ -11,6 +11,7 @@ use serenity::model::application::component::InputTextStyle;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::prelude::component::ActionRowComponent;
+use serenity::model::prelude::ChannelId;
 use serenity::model::prelude::{Ready, ResumedEvent};
 
 fn register_button() -> CreateButton {
@@ -29,6 +30,7 @@ fn action_row() -> CreateActionRow {
 }
 
 pub struct Bot {
+    whitelist_channel_id: ChannelId,
     database: Database,
     store: Store,
 }
@@ -46,6 +48,14 @@ impl EventHandler for Bot {
         })
         .await;
 
+        self.whitelist_channel_id
+            .send_message(&ctx, |m| {
+                m.content("Hello!")
+                    .components(|c| c.add_action_row(action_row()))
+            })
+            .await
+            .unwrap();
+
         tracing::info!("Connected as {}", ready.user.name);
     }
 
@@ -56,25 +66,6 @@ impl EventHandler for Bot {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         match interaction {
             Interaction::ApplicationCommand(command) => match command.data.name.as_str() {
-                "announce" => {
-                    command
-                        .channel_id
-                        .send_message(&ctx, |m| {
-                            m.content("Hello!")
-                                .components(|c| c.add_action_row(action_row()))
-                        })
-                        .await
-                        .unwrap();
-                    command
-                        .create_interaction_response(&ctx, |f| {
-                            f.interaction_response_data(|f| {
-                                f.ephemeral(true)
-                                    .content(format!("Send annoucment onto {}", command.channel_id))
-                            })
-                        })
-                        .await
-                        .unwrap();
-                }
                 other => {
                     tracing::error!("unknown command name: {other}");
                 }
@@ -242,7 +233,11 @@ impl EventHandler for Bot {
 }
 
 impl Bot {
-    pub fn new(database: Database, store: Store) -> Self {
-        Self { database, store }
+    pub fn new(database: Database, store: Store, whitelist_channel_id: ChannelId) -> Self {
+        Self {
+            database,
+            store,
+            whitelist_channel_id,
+        }
     }
 }

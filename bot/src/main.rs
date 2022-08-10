@@ -10,10 +10,12 @@ use database::Database;
 use dotenv::dotenv;
 use serenity::client::bridge::gateway::ShardManager;
 use serenity::http::Http;
+use serenity::model::prelude::ChannelId;
 use serenity::prelude::*;
 use store::Store;
 use std::env;
 use std::net::SocketAddr;
+use std::str::FromStr;
 use std::sync::Arc;
 
 pub struct ShardManagerContainer;
@@ -30,6 +32,8 @@ async fn main() {
     let database = Database::new("heaven.db");
     let store = Store::new();
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    let whitelist_channel_id = env::var("WHITELIST_CHANNEL_ID").expect("Expected a whitelist channel ID in the environment");
+    let whitelist_channel_id = ChannelId::from_str(&whitelist_channel_id).unwrap();
     let http = Http::new(&token);
 
     tokio::spawn({
@@ -40,9 +44,7 @@ async fn main() {
             server::run(address, database, store, http).await;
         }
     });
-    let bot = Bot::new(database, store);
-    // Configure the client with your Discord bot token in the environment.
-    // Build our client.
+    let bot = Bot::new(database, store, whitelist_channel_id);
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
