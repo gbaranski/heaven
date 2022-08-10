@@ -32,14 +32,17 @@ async fn main() {
     let port = env::var("PORT")
         .map(|port| port.parse().unwrap())
         .unwrap_or(8080);
-    let database_path = env::var("DATABASE_PATH").expect("Expected a database path in the environment");
+    let data_path = std::path::PathBuf::from_str(
+        &env::var("DATA_PATH").expect("Expected a data path in the environment"),
+    )
+    .unwrap();
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let whitelist_channel_id = env::var("WHITELIST_CHANNEL_ID")
         .expect("Expected a whitelist channel ID in the environment");
 
     let whitelist_channel_id = ChannelId::from_str(&whitelist_channel_id).unwrap();
     let http = Http::new(&token);
-    let database = Database::new(database_path);
+    let database = Database::new(data_path.join("database.sqlite3"));
     let store = Store::new();
 
     tokio::spawn({
