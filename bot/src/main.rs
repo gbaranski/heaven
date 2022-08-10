@@ -45,14 +45,8 @@ async fn main() {
     let database = Database::new(data_path.join("database.sqlite3"));
     let store = Store::new();
 
-    tokio::spawn({
-        let database = database.clone();
-        let store = store.clone();
-        async move {
-            let address = SocketAddr::from(([0, 0, 0, 0], port));
-            server::run(address, database, store, http).await;
-        }
-    });
+    let address = SocketAddr::from(([0, 0, 0, 0], port));
+    let server_handle = server::run(address, database.clone(), store.clone(), http);
     let bot = Bot::new(database, store, whitelist_channel_id);
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
@@ -71,6 +65,7 @@ async fn main() {
         tokio::signal::ctrl_c()
             .await
             .expect("Could not register ctrl+c handler");
+        server_handle.shutdown();
         shard_manager.lock().await.shutdown_all().await;
     });
 

@@ -11,11 +11,9 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
+use axum_server::Handle;
 use serde::Deserialize;
-use serenity::{
-    http::Http,
-    model::prelude::{component::ButtonStyle},
-};
+use serenity::{http::Http, model::prelude::component::ButtonStyle};
 use tower_http::{
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
     LatencyUnit,
@@ -29,7 +27,7 @@ struct AppState {
     discord: Arc<Http>,
 }
 
-pub async fn run(address: SocketAddr, database: Database, store: Store, discord: Http) {
+pub fn run(address: SocketAddr, database: Database, store: Store, discord: Http) -> Handle {
     let app_state = AppState {
         database,
         store,
@@ -55,11 +53,19 @@ pub async fn run(address: SocketAddr, database: Database, store: Store, discord:
                         .latency_unit(LatencyUnit::Millis),
                 ),
         );
-    tracing::debug!("listening on {}", address);
-    axum::Server::bind(&address)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let handle = Handle::new();
+    tokio::spawn({
+        let handle = handle.clone();
+        async move {
+            tracing::debug!("listening on {}", address);
+            axum_server::bind(address)
+                .handle(handle)
+                .serve(app.into_make_service())
+                .await
+                .unwrap();
+        }
+    });
+    handle
 }
 
 async fn health_check() -> &'static str {
@@ -117,7 +123,10 @@ async fn authorize_angel_by_minecraft_name(
                             .style(ButtonStyle::Secondary)
                     })
                 })
-            }).content(format!("New login request for Minecraft server from {from}."))
+            })
+            .content(format!(
+                "New login request for Minecraft server from {from}."
+            ))
         })
         .await
         .unwrap();

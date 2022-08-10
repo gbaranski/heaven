@@ -26,3 +26,4 @@ anyhow = "1.0.60"
 uuid = { version = "1.1.2", features = ["v4", "serde"] }
 tower-http = { version = "0.3.4", features = ["trace"] }
 dashmap = "5.3.4"
+axum-server = "0.4.2"
