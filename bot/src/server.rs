@@ -8,11 +8,14 @@ use crate::{
 use axum::{
     extract::{Path, Query},
     http::StatusCode,
-    routing::get,
+    routing::{get, post},
     Extension, Json, Router,
 };
 use serde::Deserialize;
-use serenity::{http::Http, model::prelude::component::ButtonStyle};
+use serenity::{
+    http::Http,
+    model::prelude::component::ButtonStyle,
+};
 use tower_http::{
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
     LatencyUnit,
@@ -39,7 +42,7 @@ pub async fn run(address: SocketAddr, database: Database, store: Store, discord:
         )
         .route(
             "/angel/by-minecraft-name/:minecraft_name/authorize",
-            get(authorize_angel_by_minecraft_name),
+            post(authorize_angel_by_minecraft_name),
         )
         .layer(Extension(app_state))
         .layer(
@@ -78,7 +81,9 @@ async fn authorize_angel_by_minecraft_name(
     Path(minecraft_name): Path<String>,
     Query(AuthorizeQuery { from }): Query<AuthorizeQuery>,
 ) -> StatusCode {
-    let angel = app_state.database.get_angel_by_minecraft_name(&minecraft_name);
+    let angel = app_state
+        .database
+        .get_angel_by_minecraft_name(&minecraft_name);
     let angel = match angel {
         Some(angel) => angel,
         None => return StatusCode::UNAUTHORIZED,
@@ -90,7 +95,7 @@ async fn authorize_angel_by_minecraft_name(
         .unwrap();
     let dm_channel = user.create_dm_channel(&app_state.discord).await.unwrap();
     let authorization = app_state.store.get_authorization(angel.discord_id);
-    dm_channel
+    let mut message = dm_channel
         .send_message(&app_state.discord, |f| {
             f.components(|c| {
                 c.create_action_row(|ar| {
@@ -112,6 +117,13 @@ async fn authorize_angel_by_minecraft_name(
         .await
         .unwrap();
     let authorization = authorization.await;
+    message.edit(&app_state.discord, |f| {
+        let message = match authorization {
+            Authorization::Allow => format!("Authorization granted for login from {from} ✅"),
+            Authorization::Deny => format!("Authorization denied for login from {from} ❌"),
+        };
+        f.content(message)
+    }).await.unwrap();
     match authorization {
         Authorization::Allow => StatusCode::OK,
         Authorization::Deny => StatusCode::UNAUTHORIZED,
