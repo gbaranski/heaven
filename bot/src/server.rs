@@ -14,7 +14,7 @@ use axum::{
 use serde::Deserialize;
 use serenity::{
     http::Http,
-    model::prelude::component::ButtonStyle,
+    model::prelude::{component::ButtonStyle, MessageFlags},
 };
 use tower_http::{
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
@@ -117,6 +117,12 @@ async fn authorize_angel_by_minecraft_name(
         .await
         .unwrap();
     let authorization = authorization.await;
+    message
+        .edit(&app_state.discord, |f| {
+            f.components(|f| f.set_action_rows(vec![]))
+        })
+        .await
+        .unwrap();
     match authorization {
         Authorization::Allow => StatusCode::OK,
         Authorization::Deny => StatusCode::UNAUTHORIZED,
