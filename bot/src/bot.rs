@@ -38,8 +38,6 @@ pub struct Bot {
 #[async_trait]
 impl EventHandler for Bot {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        tokio::spawn(async move {});
-
         let previous_messages = self
             .whitelist_channel_id
             .messages(&ctx, |m| m)
