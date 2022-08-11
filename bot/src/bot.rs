@@ -1,14 +1,15 @@
 use std::net::IpAddr;
 use std::sync::Arc;
 
+use crate::authorizations::Authorization;
+use crate::authorizations::Authorizations;
 use crate::configuration::Configuration;
 use crate::database::Database;
 use crate::models::Angel;
 use crate::models::AngelID;
 use crate::models::MinecraftType;
-use crate::authorizations::Authorization;
-use crate::authorizations::Authorizations;
 use crate::ShardManagerContainer;
+use miette::{IntoDiagnostic, Result};
 use serenity::async_trait;
 use serenity::builder::{CreateActionRow, CreateButton};
 use serenity::client::{Context, EventHandler};
@@ -276,7 +277,7 @@ impl DiscordBot {
         }
     }
 
-    pub async fn run(self, subsystem: SubsystemHandle) -> Result<(), anyhow::Error> {
+    pub async fn run(self, subsystem: SubsystemHandle) -> Result<()> {
         let intents = GatewayIntents::GUILD_MESSAGES
             | GatewayIntents::DIRECT_MESSAGES
             | GatewayIntents::MESSAGE_CONTENT;
@@ -291,21 +292,17 @@ impl DiscordBot {
         let shard_manager = client.shard_manager.clone();
         tokio::select! {
             result = client.start() => {
-                return result.map_err(|err| err.into())
+                result.into_diagnostic()
             }
             _ = subsystem.on_shutdown_requested() => {
                 tracing::info!("Shutting down Discord Bot");
                 shard_manager.lock().await.shutdown_all().await;
-                return Ok(())
+                Ok(())
             }
         }
     }
 
-    pub async fn authorize(
-        &self,
-        user_id: UserId,
-        from: IpAddr,
-    ) -> Result<Authorization, anyhow::Error> {
+    pub async fn authorize(&self, user_id: UserId, from: IpAddr) -> Result<Authorization> {
         let user = self.client.get_user(user_id.0).await.unwrap();
         let dm_channel = user.create_dm_channel(&self.client).await.unwrap();
         let authorization = self.authorizations.request_authorization(user_id);
@@ -331,13 +328,15 @@ impl DiscordBot {
                     "New login request for Minecraft server from {from}."
                 ))
             })
-            .await?;
+            .await
+            .into_diagnostic()?;
         let authorization = authorization.await;
         message
             .edit(&self.client, |f| {
                 f.components(|f| f.set_action_rows(vec![]))
             })
-            .await?;
+            .await
+            .into_diagnostic()?;
         Ok(authorization)
     }
 }

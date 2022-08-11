@@ -10,6 +10,7 @@ use database::Database;
 
 use serenity::client::bridge::gateway::ShardManager;
 use serenity::prelude::*;
+use miette::{IntoDiagnostic, Result};
 use server::Server;
 use std::sync::Arc;
 use std::time::Duration;
@@ -24,7 +25,7 @@ impl TypeMapKey for ShardManagerContainer {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
+async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
     let configuration = Arc::new(Configuration::get());
     let database = Database::new(configuration.data_path.join("database.sqlite3"));
@@ -38,5 +39,5 @@ async fn main() -> Result<(), anyhow::Error> {
         .catch_signals()
         .handle_shutdown_requests(Duration::from_millis(1000))
         .await
-        .map_err(Into::into)
+        .into_diagnostic()
 }

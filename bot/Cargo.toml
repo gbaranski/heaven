@@ -22,10 +22,10 @@ r2d2_sqlite = "0.21.0"
 r2d2 = "0.8.10"
 axum = "0.5.15"
 serde = "1.0.143"
-anyhow = "1.0.60"
 uuid = { version = "1.1.2", features = ["v4", "serde"] }
 tower-http = { version = "0.3.4", features = ["trace"] }
 dashmap = "5.3.4"
 axum-server = "0.4.2"
 tokio-graceful-shutdown = "0.10.1"
 envy = "0.4.2"
+miette = { version = "5.3.0", features = ["fancy"] }

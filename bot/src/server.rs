@@ -1,11 +1,8 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use crate::{
-    bot::DiscordBot,
-    configuration::Configuration,
-    database::Database,
-    models::Angel,
-    authorizations::Authorization,
+    authorizations::Authorization, bot::DiscordBot, configuration::Configuration,
+    database::Database, models::Angel,
 };
 use axum::{
     extract::{Path, Query},
@@ -14,6 +11,7 @@ use axum::{
     Extension, Json, Router,
 };
 use axum_server::Handle;
+use miette::{IntoDiagnostic, Result};
 use serde::Deserialize;
 use tokio_graceful_shutdown::SubsystemHandle;
 use tower_http::{
@@ -69,7 +67,7 @@ impl Server {
         }
     }
 
-    pub async fn run(self, subsystem: SubsystemHandle) -> Result<(), anyhow::Error> {
+    pub async fn run(self, subsystem: SubsystemHandle) -> Result<()> {
         let handle = Handle::new();
         let address = SocketAddr::from(([0, 0, 0, 0], self.configuration.port));
         let future = axum_server::bind(address)
@@ -77,7 +75,7 @@ impl Server {
             .serve(self.router.into_make_service());
         tokio::select! {
             result = future => {
-                result.map_err(|err| err.into())
+                result.into_diagnostic()
             }
             _ = subsystem.on_shutdown_requested() => {
                 Ok(())
@@ -117,7 +115,11 @@ async fn authorize_angel_by_minecraft_name(
         Some(angel) => angel,
         None => return StatusCode::UNAUTHORIZED,
     };
-    let authorization = app_state.discord_bot.authorize(angel.discord_id, from).await.unwrap();
+    let authorization = app_state
+        .discord_bot
+        .authorize(angel.discord_id, from)
+        .await
+        .unwrap();
     match authorization {
         Authorization::Allow => StatusCode::OK,
         Authorization::Deny => StatusCode::UNAUTHORIZED,
