@@ -54,7 +54,7 @@ pub struct DiscordBot {
 #[async_trait]
 impl EventHandler for DiscordBot {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        let mut activity = Activity::watching("till gbaranski gets his ban removed".to_string());
+        let mut activity = Activity::watching("\"gbaranski gets his ban removed\" part 1".to_string());
         activity.details = Some("Check out my GitHub profile https://github.com/gbaranski/heaven".to_string());
         ctx.set_activity(activity).await;
         let greeting_content =
