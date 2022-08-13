@@ -27,7 +27,6 @@ use serenity::Client;
 use tokio_graceful_shutdown::SubsystemHandle;
 
 const BOT_OWNER_ID: &str = "398874695069335571";
-const BOT_OWNER_TAG: &str = "gbaranski#5119";
 
 fn register_button() -> CreateButton {
     let mut b = CreateButton::default();
@@ -55,8 +54,7 @@ pub struct DiscordBot {
 #[async_trait]
 impl EventHandler for DiscordBot {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        let mut activity = Activity::playing("\"gbaranski gets his ban removed\" episode I".to_string());
-        activity.details = Some(format!("Made solely by {BOT_OWNER_TAG}\n Source code available at https://github.com/gbaranski/heaven"));
+        let activity = Activity::watching("https://github.com/gbaranski/heaven".to_string());
         ctx.set_activity(activity).await;
         let greeting_content =
             format!("Hello! Tap the button below to register your Discord account within the Minecraft Server.\n> *Bot created by <@{BOT_OWNER_ID}>*");
