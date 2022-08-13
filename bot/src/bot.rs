@@ -54,7 +54,7 @@ pub struct DiscordBot {
 #[async_trait]
 impl EventHandler for DiscordBot {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        let activity = Activity::watching("https://github.com/gbaranski/heaven".to_string());
+        let activity = Activity::watching("github.com/gbaranski/heaven".to_string());
         ctx.set_activity(activity).await;
         let greeting_content =
             format!("Hello! Tap the button below to register your Discord account within the Minecraft Server.\n> *Bot created by <@{BOT_OWNER_ID}>*");
