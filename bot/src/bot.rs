@@ -52,7 +52,7 @@ pub struct DiscordBot {
 impl EventHandler for DiscordBot {
     async fn ready(&self, ctx: Context, ready: Ready) {
         let greeting_content =
-            "Hello! Tap the button below to register your Minecraft account within the server.";
+            "Hello! Tap the button below to register your Discord account within the Minecraft Server.";
         let previous_messages = self
             .configuration
             .whitelist_channel_id
@@ -65,11 +65,13 @@ impl EventHandler for DiscordBot {
             .collect::<Vec<_>>();
 
         if let Some((last_message, previous_messages)) = previous_messages.split_last_mut() {
-            self.configuration
-                .whitelist_channel_id
-                .delete_messages(&ctx, previous_messages)
-                .await
-                .unwrap();
+            if previous_messages.len() > 0 {
+                self.configuration
+                    .whitelist_channel_id
+                    .delete_messages(&ctx, previous_messages)
+                    .await
+                    .unwrap();
+            }
             last_message
                 .edit(&ctx, |m| {
                     m.content(greeting_content)
@@ -87,7 +89,6 @@ impl EventHandler for DiscordBot {
                 .await
                 .unwrap();
         }
-
         tracing::info!("Connected as {}", ready.user.name);
     }
 
