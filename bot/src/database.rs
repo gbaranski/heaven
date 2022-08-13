@@ -1,4 +1,4 @@
-use crate::models::{MinecraftType, Angel, AngelID};
+use crate::models::{Angel, AngelID, MinecraftType};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{OptionalExtension, ToSql};
@@ -49,10 +49,16 @@ impl Database {
             .query_row([by], |row| {
                 Ok(Angel {
                     id: AngelID::from_str(row.get::<_, String>("id")?.as_str()).unwrap(),
-                    discord_id: DiscordUserID::from_str(row.get::<_, String>("discord_id")?.as_str()).unwrap(),
+                    discord_id: DiscordUserID::from_str(
+                        row.get::<_, String>("discord_id")?.as_str(),
+                    )
+                    .unwrap(),
                     discord_name: row.get("discord_name")?,
                     minecraft_name: row.get("minecraft_name")?,
-                    minecraft_type: MinecraftType::from_str(row.get::<_, String>("minecraft_type")?.as_str()).unwrap(),
+                    minecraft_type: MinecraftType::from_str(
+                        row.get::<_, String>("minecraft_type")?.as_str(),
+                    )
+                    .unwrap(),
                 })
             })
             .optional()
@@ -99,6 +105,6 @@ impl Database {
             .unwrap();
 
         assert_eq!(n, 1);
-        tracing::info!("added user to the database");
+        tracing::info!("added angel to the database {angel:?}");
     }
 }
