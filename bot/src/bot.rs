@@ -58,7 +58,7 @@ impl EventHandler for DiscordBot {
         activity.details = Some("Check out my GitHub profile https://github.com/gbaranski/heaven".to_string());
         ctx.set_activity(activity).await;
         let greeting_content =
-            format!("Hello! Tap the button below to register your Discord account within the Minecraft Server.\n\n*Created by {BOT_OWNER_TAG}*");
+            format!("Hello! Tap the button below to register your Discord account within the Minecraft Server.\n\n> *Created by {BOT_OWNER_TAG}*");
         let previous_messages = self
             .configuration
             .whitelist_channel_id
