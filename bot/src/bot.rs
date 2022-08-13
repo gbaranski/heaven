@@ -26,6 +26,8 @@ use serenity::prelude::GatewayIntents;
 use serenity::Client;
 use tokio_graceful_shutdown::SubsystemHandle;
 
+const BOT_OWNER_TAG: &str = "gbaranski#5119";
+
 fn register_button() -> CreateButton {
     let mut b = CreateButton::default();
     b.custom_id("register");
@@ -56,7 +58,7 @@ impl EventHandler for DiscordBot {
         activity.details = Some("Check out my GitHub profile https://github.com/gbaranski/heaven".to_string());
         ctx.set_activity(activity).await;
         let greeting_content =
-            "Hello! Tap the button below to register your Discord account within the Minecraft Server.";
+            format!("Hello! Tap the button below to register your Discord account within the Minecraft Server.\n\nCreated by {BOT_OWNER_TAG}");
         let previous_messages = self
             .configuration
             .whitelist_channel_id
@@ -113,7 +115,7 @@ impl EventHandler for DiscordBot {
                         mc.create_interaction_response(&ctx, |i| {
                             i.interaction_response_data(|d| {
                                 d.ephemeral(true).content(format!(
-                                    "You are already registered under {} name!",
+                                    "You are already registered under name {}! If that's not your minecraft nickname, please report to {BOT_OWNER_TAG}",
                                     user.minecraft_name
                                 ))
                             })
