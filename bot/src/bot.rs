@@ -19,6 +19,7 @@ use serenity::model::application::component::InputTextStyle;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::prelude::component::ActionRowComponent;
+use serenity::model::prelude::Activity;
 use serenity::model::prelude::UserId;
 use serenity::model::prelude::{Ready, ResumedEvent};
 use serenity::prelude::GatewayIntents;
@@ -51,6 +52,9 @@ pub struct DiscordBot {
 #[async_trait]
 impl EventHandler for DiscordBot {
     async fn ready(&self, ctx: Context, ready: Ready) {
+        let mut activity = Activity::watching("Waiting till `gbaranski` gets his ban removed".to_string());
+        activity.details = Some("Check out my GitHub profile https://github.com/gbaranski/heaven".to_string());
+        ctx.set_activity(activity).await;
         let greeting_content =
             "Hello! Tap the button below to register your Discord account within the Minecraft Server.";
         let previous_messages = self
