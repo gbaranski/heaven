@@ -146,7 +146,7 @@ impl EventHandler for DiscordBot {
                                                         o.value("premium").label("Premium")
                                                     });
                                                     o.create_option(|o| {
-                                                        o.value("Cracked").label("Cracked")
+                                                        o.value("cracked").label("Cracked")
                                                     });
                                                     o
                                                 })
