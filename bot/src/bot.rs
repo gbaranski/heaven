@@ -136,26 +136,6 @@ impl EventHandler for DiscordBot {
                                                 .style(InputTextStyle::Short)
                                         })
                                     })
-                                    .create_action_row(|ar| {
-                                        ar.create_select_menu(|sm| {
-                                            sm.custom_id("minecraft-type")
-                                                .placeholder("Type of Minecraft account")
-                                                .options(|o| {
-                                                    o.create_option(|o| {
-                                                        o.value("premium")
-                                                            .label("Premium")
-                                                            .default_selection(true)
-                                                    })
-                                                    .create_option(|o| {
-                                                        o.value("cracked")
-                                                            .label("Cracked")
-                                                            .default_selection(false)
-                                                    })
-                                                })
-                                                .min_values(1)
-                                                .max_values(1)
-                                        })
-                                    })
                                 })
                                 .title("Minecraft user registration")
                                 .custom_id("registration")
@@ -218,19 +198,6 @@ impl EventHandler for DiscordBot {
                     } else {
                         panic!("invalid component type");
                     };
-                    let minecraft_type = if let ActionRowComponent::SelectMenu(component) =
-                        &submission.data.components[1].components[0]
-                    {
-                        assert_eq!(component.custom_id.as_ref().unwrap(), "minecraft-type");
-                        assert_eq!(component.values.len(), 1);
-                        match component.values[0].as_str() {
-                            "premium" => MinecraftType::Premium,
-                            "cracked" => MinecraftType::Cracked,
-                            other => panic!("invalid account type: {other}"),
-                        }
-                    } else {
-                        panic!("invalid component type");
-                    };
 
                     if let Some(user) = self.database.get_angel_by_minecraft_name(&minecraft_name) {
                         submission
@@ -254,7 +221,7 @@ impl EventHandler for DiscordBot {
                             .nick_in(&ctx, submission.guild_id.unwrap())
                             .await
                             .unwrap_or_else(|| submission.user.name.clone()),
-                        minecraft_type,
+                        minecraft_type: MinecraftType::Cracked,
                         minecraft_name,
                     };
                     self.database.insert_angel(&angel);
