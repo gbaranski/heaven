@@ -134,25 +134,22 @@ impl EventHandler for DiscordBot {
                                                 .custom_id("minecraft-name")
                                                 .required(true)
                                                 .style(InputTextStyle::Short)
-                                        });
-                                        ar
-                                    });
-                                    c.create_action_row(|ar| {
+                                        })
+                                    })
+                                    .create_action_row(|ar| {
                                         ar.create_select_menu(|sm| {
-                                            sm.placeholder("Type of Minecraft account")
-                                                .custom_id("minecraft-type")
+                                            sm.custom_id("minecraft-type")
+                                                .placeholder("Type of Minecraft account")
                                                 .options(|o| {
                                                     o.create_option(|o| {
                                                         o.value("premium").label("Premium")
-                                                    });
-                                                    o.create_option(|o| {
+                                                    })
+                                                    .create_option(|o| {
                                                         o.value("cracked").label("Cracked")
-                                                    });
-                                                    o
+                                                    })
                                                 })
                                         })
-                                    });
-                                    c
+                                    })
                                 })
                                 .title("Minecraft user registration")
                                 .custom_id("registration")
