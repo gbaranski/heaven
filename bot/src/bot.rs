@@ -142,12 +142,18 @@ impl EventHandler for DiscordBot {
                                                 .placeholder("Type of Minecraft account")
                                                 .options(|o| {
                                                     o.create_option(|o| {
-                                                        o.value("premium").label("Premium")
+                                                        o.value("premium")
+                                                            .label("Premium")
+                                                            .default_selection(true)
                                                     })
                                                     .create_option(|o| {
-                                                        o.value("cracked").label("Cracked")
+                                                        o.value("cracked")
+                                                            .label("Cracked")
+                                                            .default_selection(false)
                                                     })
                                                 })
+                                                .min_values(1)
+                                                .max_values(1)
                                         })
                                     })
                                 })
