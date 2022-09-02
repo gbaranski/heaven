@@ -42,12 +42,14 @@ impl Authorizations {
     pub fn request_authorization(
         &self,
         discord_user_id: DiscordUserID,
-    ) -> impl Future<Output = Authorization> + '_ {
+    ) -> impl Future<Output = Option<Authorization>> + '_ {
         let (sender, receiver) = oneshot::channel();
         self.authorizations.insert(discord_user_id, Some(sender));
         async move {
-            let authorization = receiver.await.unwrap();
-            self.authorizations.remove(&discord_user_id);
+            let authorization = receiver.await.ok();
+            if authorization.is_some() {
+                self.authorizations.remove(&discord_user_id);
+            }
             authorization
         }
     }

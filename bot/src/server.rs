@@ -118,10 +118,19 @@ async fn authorize_angel_by_minecraft_name(
     let authorization = app_state
         .discord_bot
         .authorize(angel.discord_id, from)
-        .await
-        .unwrap();
+        .await;
     match authorization {
-        Authorization::Allow => StatusCode::OK,
-        Authorization::Deny => StatusCode::UNAUTHORIZED,
+        Ok(Authorization::Allow) => {
+            tracing::info!("allowing user {minecraft_name} to join");
+            StatusCode::OK
+        },
+        Ok(Authorization::Deny) => {
+            tracing::warn!("denying user {minecraft_name} to join");
+            StatusCode::UNAUTHORIZED
+        },
+        Err(err) => {
+            tracing::error!("authorization error = {err}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        },
     }
 }

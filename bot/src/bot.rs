@@ -1,6 +1,7 @@
 use std::net::IpAddr;
 use std::sync::Arc;
 
+use miette::miette;
 use crate::authorizations::Authorization;
 use crate::authorizations::Authorizations;
 use crate::configuration::Configuration;
@@ -306,7 +307,7 @@ impl DiscordBot {
             })
             .await
             .into_diagnostic()?;
-        let authorization = authorization.await;
+        let authorization = authorization.await.ok_or(miette!("request_authorization() returned None"))?;
         message
             .edit(&self.client, |f| {
                 f.components(|f| f.set_action_rows(vec![]))
