@@ -21,8 +21,10 @@ public class Listeners implements Listener {
         try {
             Main.get().getLogger().info(String.format("Authorizing %s.", playerName));
             if (!Main.get().getClient().authorize(playerName, event.getAddress())) {
+                Main.get().getLogger().info(String.format("Kicking out %s", playerName));
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_WHITELIST, "Login denied from Discord");
             } else {
+                Main.get().getLogger().info(String.format("Accepting %s", playerName));
                 event.allow();
             }
         } catch (IOException | URISyntaxException ex) {
@@ -36,9 +38,9 @@ public class Listeners implements Listener {
         try {
             Angel angel = Main.get().getClient().fetchAngel(p.getName());
             if (angel == null) {
+                Main.get().getLogger().info(String.format("Angel with name %s not found", p.getName()));
                 e.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, "User not on whitelist");
             } else {
-
                 final String nickname = ChatColor.translateAlternateColorCodes('&', String.format("&e%s&c(&6%s&c)&f", angel.discordName.replace(' ', '_'), p.getName()));
                 p.setPlayerListName(nickname);
                 p.setDisplayName(nickname);

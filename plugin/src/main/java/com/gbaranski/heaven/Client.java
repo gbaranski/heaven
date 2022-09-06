@@ -39,6 +39,7 @@ public class Client {
         HttpURLConnection con = (HttpURLConnection) newURI.toURL().openConnection();
         con.setRequestMethod("POST");
         con.connect();
+        Main.get().getLogger().info(String.format("authorization of %s ended with status = %s", name, con.getResponseCode()));
         return con.getResponseCode() == 200;
     }
 }

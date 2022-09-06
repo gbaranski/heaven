@@ -113,7 +113,10 @@ async fn authorize_angel_by_minecraft_name(
         .get_angel_by_minecraft_name(&minecraft_name);
     let angel = match angel {
         Some(angel) => angel,
-        None => return StatusCode::UNAUTHORIZED,
+        None => {
+            tracing::warn!("angel not found by name: {}", minecraft_name);
+            return StatusCode::NOT_FOUND
+        },
     };
     let authorization = app_state
         .discord_bot
