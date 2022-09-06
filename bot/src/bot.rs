@@ -195,7 +195,7 @@ impl EventHandler for DiscordBot {
                         &submission.data.components[0].components[0]
                     {
                         assert_eq!(component.custom_id, "minecraft-name");
-                        component.value.clone()
+                        component.value.trim().to_string()
                     } else {
                         panic!("invalid component type");
                     };
