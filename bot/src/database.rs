@@ -43,7 +43,7 @@ impl Database {
         let connection = self.pool.get().unwrap();
 
         let mut query = connection
-            .prepare(&format!("SELECT * FROM angels WHERE {selector}=?"))
+            .prepare(&format!("SELECT * FROM angels WHERE {selector}=? COLLATE NOCASE"))
             .unwrap();
         query
             .query_row([by], |row| {
