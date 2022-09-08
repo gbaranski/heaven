@@ -10,6 +10,7 @@ import org.bukkit.event.player.PlayerLoginEvent;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.AbstractMap;
 
 public class Listeners implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -20,12 +21,15 @@ public class Listeners implements Listener {
         String playerName = event.getName();
         try {
             Main.get().getLogger().info(String.format("Authorizing %s.", playerName));
-            if (!Main.get().getClient().authorize(playerName, event.getAddress())) {
-                Main.get().getLogger().info(String.format("Kicking out %s", playerName));
-                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_WHITELIST, "Login denied from Discord");
-            } else {
+            final AbstractMap.SimpleEntry<Boolean, String> result = Main.get().getClient().authorize(playerName, event.getAddress());
+            final boolean isAuthorized = result.getKey();
+            final String message = result.getValue();
+            if (isAuthorized) {
                 Main.get().getLogger().info(String.format("Accepting %s", playerName));
                 event.allow();
+            } else {
+                Main.get().getLogger().info(String.format("Kicking out %s due to %s", playerName, message));
+                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_WHITELIST, message);
             }
         } catch (IOException | URISyntaxException ex) {
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "Authorization service was not available");
