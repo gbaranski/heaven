@@ -8,42 +8,52 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.AbstractMap;
-
 public class Listeners implements Listener {
+    private final Database database;
+    private final DiscordBot discordBot;
+
+    public Listeners(Database database, DiscordBot discordBot) {
+        this.database = database;
+        this.discordBot = discordBot;
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onAsyncPlayerPreLoginEventHighest(AsyncPlayerPreLoginEvent event){
+    public void onAsyncPlayerPreLoginEventHighest(AsyncPlayerPreLoginEvent event) {
         if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) {
             return;
         }
         String playerName = event.getName();
         try {
             Main.get().getLogger().info(String.format("Authorizing %s.", playerName));
-            final AbstractMap.SimpleEntry<Boolean, String> result = Main.get().getClient().authorize(playerName, event.getAddress());
-            final boolean isAuthorized = result.getKey();
-            final String message = result.getValue();
+            var angel = database.getAngelByMinecraftName(playerName);
+            if (angel == null) {
+                Main.get().getLogger().info(String.format("Kicking out %s because angel did not exist", playerName));
+                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_WHITELIST, "Not registered.");
+                return;
+            }
+            var isAuthorized = discordBot.authorize(angel.discordID, event.getAddress().toString());
             if (isAuthorized) {
                 Main.get().getLogger().info(String.format("Accepting %s", playerName));
                 event.allow();
             } else {
-                Main.get().getLogger().info(String.format("Kicking out %s due to %s", playerName, message));
-                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_WHITELIST, message);
+                Main.get().getLogger().info(String.format("Kicking out %s because of login denied on Discord", playerName));
+                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_WHITELIST, "Login denied on Discord");
             }
-        } catch (IOException | URISyntaxException ex) {
-            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "Authorization service was not available");
+        } catch (Exception ex) {
+            Main.get().getLogger().info(String.format("Internal error: %s", ex));
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "Authorization failed due to an internal error.");
             throw new RuntimeException(ex);
         }
     }
+
     @EventHandler
-    public void onLogin(PlayerLoginEvent e){
+    public void onLogin(PlayerLoginEvent e) {
         Player p = e.getPlayer();
         try {
-            Angel angel = Main.get().getClient().fetchAngel(p.getName());
+            var angel = database.getAngelByMinecraftName(p.getName());
             if (angel == null) {
                 Main.get().getLogger().info(String.format("Angel with name %s not found", p.getName()));
-                e.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, "User not on whitelist");
+                e.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, "User not registered.");
             } else {
                 final String nickname = ChatColor.translateAlternateColorCodes('&', String.format("&e%s&c(&6%s&c)&f", angel.discordName.replace(' ', '_'), p.getName()));
                 p.setPlayerListName(nickname);
@@ -52,8 +62,9 @@ public class Listeners implements Listener {
                 p.setCustomNameVisible(true);
             }
 
-        } catch (IOException | URISyntaxException ex) {
-            e.disallow(PlayerLoginEvent.Result.KICK_OTHER, "Authorization service was not available");
+        } catch (Exception ex) {
+            Main.get().getLogger().info(String.format("Internal error: %s", ex));
+            e.disallow(PlayerLoginEvent.Result.KICK_OTHER, "Internal error.");
             throw new RuntimeException(ex);
         }
     }

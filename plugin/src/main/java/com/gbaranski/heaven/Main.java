@@ -1,32 +1,23 @@
 package com.gbaranski.heaven;
 
-import org.bukkit.ChatColor;
-import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.Objects;
 
 public final class Main extends JavaPlugin
 {
     private static Main instance;
-    private Storage storage;
-    private Client client;
 
     public Main() {
         Main.instance = this;
     }
 
-    @Override
-    public void onLoad() {
-        super.onLoad();
-    }
-
     public void onEnable() {
         this.getConfig().options().copyDefaults(true);
         this.saveDefaultConfig();
-        this.storage = new Storage();
-        this.client = new Client();
-        this.getServer().getPluginManager().registerEvents(new Listeners(), this);
+        Configuration configuration = new Configuration();
+        Database database = new Database();
+        DiscordBot discordBot = new DiscordBot(configuration, database);
+        this.getServer().getPluginManager().registerEvents(new Listeners(database, discordBot), this);
+        discordBot.awaitReady();
         this.getLogger().info("Plugin enabled");
     }
 
@@ -35,15 +26,7 @@ public final class Main extends JavaPlugin
         this.getLogger().info("Plugin disabled");
     }
 
-    public static Main get(){
+    public static Main get() {
         return instance;
-    }
-
-    public Storage getStorage() {
-        return this.storage;
-    }
-
-    public Client getClient() {
-        return this.client;
     }
 }
