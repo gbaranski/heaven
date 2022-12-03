@@ -57,12 +57,12 @@ func InitDB(url string) error {
 }
 
 func AddServer(server *Server) error {
-	_, err := db.Exec("INSERT INTO servers VALUES (?, ?, ?, ?)", server.ID, server.Token, server.Address, server.GuildID)
+	_, err := db.Exec("INSERT INTO servers VALUES ($1, $2, $3, $4)", server.ID, server.Token, server.Address, server.GuildID)
 	return err
 }
 
 func GetServer(serverID string) (*Server, error) {
-	row := db.QueryRow("SELECT id, token, address, guild_id FROM servers WHERE id = ?", serverID)
+	row := db.QueryRow("SELECT id, token, address, guild_id FROM servers WHERE id = $1", serverID)
 	server := &Server{}
 	if err := row.Scan(&server.ID, &server.Token, &server.Address, &server.GuildID); err != nil {
 		if err == sql.ErrNoRows {
@@ -75,7 +75,7 @@ func GetServer(serverID string) (*Server, error) {
 }
 
 func GetServerByAddress(guildID string, address string) (*Server, error) {
-	row := db.QueryRow("SELECT id, token, address, guild_id FROM servers WHERE guild_id = ? AND address = ?", guildID, address)
+	row := db.QueryRow("SELECT id, token, address, guild_id FROM servers WHERE guild_id = $1 AND address = $2", guildID, address)
 	server := &Server{}
 	if err := row.Scan(&server.ID, &server.Token, &server.Address, &server.GuildID); err != nil {
 		if err == sql.ErrNoRows {
@@ -88,12 +88,12 @@ func GetServerByAddress(guildID string, address string) (*Server, error) {
 }
 
 func AddAngel(angel *Angel) error {
-	_, err := db.Exec("INSERT INTO angels VALUES (?, ?, ?, ?)", angel.Name, angel.MinecraftName, angel.ServerID, angel.UserID)
+	_, err := db.Exec("INSERT INTO angels VALUES ($1, $2, $3, $4)", angel.Name, angel.MinecraftName, angel.ServerID, angel.UserID)
 	return err
 }
 
 func GetAngel(serverID string, userID string) (*Angel, error) {
-	row := db.QueryRow("SELECT name, minecraft_name, server_id, user_id FROM angels WHERE server_id = ? AND user_id = ?", serverID, userID)
+	row := db.QueryRow("SELECT name, minecraft_name, server_id, user_id FROM angels WHERE server_id = $1 AND user_id = $2", serverID, userID)
 	angel := &Angel{}
 	if err := row.Scan(&angel.Name, &angel.MinecraftName, &angel.ServerID, &angel.UserID); err != nil {
 		if err == sql.ErrNoRows {
@@ -106,7 +106,7 @@ func GetAngel(serverID string, userID string) (*Angel, error) {
 }
 
 func GetAngelByMinecraftName(serverID string, minecraftName string) (*Angel, error) {
-	row := db.QueryRow("SELECT name, minecraft_name, server_id, user_id FROM angels WHERE server_id = ? AND minecraft_name = ?", serverID, minecraftName)
+	row := db.QueryRow("SELECT name, minecraft_name, server_id, user_id FROM angels WHERE server_id = $1 AND minecraft_name = $2", serverID, minecraftName)
 	angel := &Angel{}
 	if err := row.Scan(&angel.Name, &angel.MinecraftName, &angel.ServerID, &angel.UserID); err != nil {
 		if err == sql.ErrNoRows {
@@ -119,12 +119,12 @@ func GetAngelByMinecraftName(serverID string, minecraftName string) (*Angel, err
 }
 
 func UpdateAngel(angel *Angel) error {
-	_, err := db.Exec("UPDATE angels SET name = ?, minecraft_name = ? WHERE server_id = ? AND user_id = ?", angel.Name, angel.MinecraftName, angel.ServerID, angel.UserID)
+	_, err := db.Exec("UPDATE angels SET name = $1, minecraft_name = $2 WHERE server_id = $3 AND user_id = $4", angel.Name, angel.MinecraftName, angel.ServerID, angel.UserID)
 	return err
 }
 
 func DoesAngelExistWithUserID(serverID string, userID string) (bool, error) {
-	row := db.QueryRow("SELECT 1 FROM angels WHERE server_id = ? AND user_id = ?", serverID, userID)
+	row := db.QueryRow("SELECT 1 FROM angels WHERE server_id = $1 AND user_id = $2", serverID, userID)
 	var v string
 	if err := row.Scan(&v); err != nil {
 		if err == sql.ErrNoRows {
@@ -137,7 +137,7 @@ func DoesAngelExistWithUserID(serverID string, userID string) (bool, error) {
 }
 
 func DoesAngelExistWithMinecraftName(serverID string, minecraftName string) (bool, error) {
-	row := db.QueryRow("SELECT 1 FROM angels WHERE server_id = ? AND minecraft_name = ?", serverID, minecraftName)
+	row := db.QueryRow("SELECT 1 FROM angels WHERE server_id = $1 AND minecraft_name = $2", serverID, minecraftName)
 	var v string
 	if err := row.Scan(&v); err != nil {
 		if err == sql.ErrNoRows {
