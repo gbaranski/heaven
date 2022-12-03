@@ -8,7 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/google/uuid v1.3.0
 	github.com/joho/godotenv v1.4.0
-	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/lib/pq v1.10.7
 	github.com/rs/zerolog v1.28.0
 )
 

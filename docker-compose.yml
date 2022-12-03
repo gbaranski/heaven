@@ -1,0 +1,30 @@
+version: "3.8"
+services:
+  heaven:
+    container_name: heaven
+    env_file: .env
+    restart: unless-stopped
+    build: .
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/heaven?sslmode=disable
+      GIN_MODE: release
+      PORT: 80
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=heaven
+    ports:
+      - '5432:5432'
+    volumes: 
+      - db:/var/lib/postgresql/data
+        
+volumes:
+  db:
+    driver: local
+

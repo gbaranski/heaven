@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	_ "github.com/lib/pq"
 )
 
 type Server struct {
@@ -42,9 +43,9 @@ const create string = `
 
 var db *sql.DB
 
-func InitDB(path string) error {
+func InitDB(url string) error {
 	var err error
-	db, err = sql.Open("sqlite3", path)
+	db, err = sql.Open("postgres", url)
 	if err != nil {
 		return err
 	}

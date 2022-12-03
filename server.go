@@ -72,5 +72,6 @@ func StartServer(port uint) error {
 		c.JSON(200, angel)
 	})
 
+	log.Info().Uint("port", port).Msg("starting server")
 	return r.Run(":" + fmt.Sprint(port))
 }

@@ -2,37 +2,30 @@ package main
 
 import (
 	"os"
-	"path"
 
 	"github.com/caarlos0/env"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type Environment struct {
-	DatabasePath string `env:"DATABASE_PATH" envDefault:"$HOME/.local/share/heaven/database.db" envExpand:"true"`
+	DatabaseURL  string `env:"DATABASE_URL" envDefault:"postgresql://127.0.0.1/heaven" envExpand:"true"`
 	DiscordToken string `env:"DISCORD_TOKEN"`
 	Port         uint   `env:"PORT" envDefault:"8080"`
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal().Err(err).Msg("error loading .env file")
+	if _, err := os.Stat(".env"); err == nil {
+		if err := godotenv.Load(); err != nil {
+			log.Fatal().Err(err).Msg("failed to load .env file")
+		}
 	}
-
 	environment := Environment{}
 	if err := env.Parse(&environment); err != nil {
 		log.Fatal().Err(err).Msg("failed to parse environment variables")
 	}
 
-	if err := os.MkdirAll(path.Dir(environment.DatabasePath), 0755); err != nil {
-		log.Fatal().Err(err).Msg("failed to create database directory")
-	}
-
-	err = InitDB(environment.DatabasePath)
+	err := InitDB(environment.DatabaseURL)
 	if err != nil {
 		panic(err)
 	}
