@@ -1,6 +1,9 @@
 package main
 
 import (
+	"os"
+	"path"
+
 	"github.com/caarlos0/env"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
@@ -9,6 +12,7 @@ import (
 )
 
 type Environment struct {
+	DatabasePath string `env:"DATABASE_PATH" envDefault:"$HOME/.local/share/heaven/database.db" envExpand:"true"`
 	DiscordToken string `env:"DISCORD_TOKEN"`
 	Port         uint   `env:"PORT" envDefault:"8080"`
 }
@@ -24,7 +28,11 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to parse environment variables")
 	}
 
-	err = InitDB("test.db")
+	if err := os.MkdirAll(path.Dir(environment.DatabasePath), 0755); err != nil {
+		log.Fatal().Err(err).Msg("failed to create database directory")
+	}
+
+	err = InitDB(environment.DatabasePath)
 	if err != nil {
 		panic(err)
 	}
