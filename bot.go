@@ -118,6 +118,19 @@ var (
 	modalSubmitHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"registration/": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			serverID := strings.SplitAfter(i.ModalSubmitData().CustomID, "/")[1]
+			server, err := GetServer(serverID)
+			if err != nil {
+				log.Error().
+					Err(err).
+					Msg("failed to get server")
+				return
+			}
+			if server == nil {
+				log.Error().
+					Err(err).
+					Msg("server not found")
+				return
+			}
 			minecraftName := i.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
 			alreadyRegistered, err := DoesAngelExistWithUserID(serverID, i.Member.User.ID)
 			if err != nil {
@@ -155,12 +168,17 @@ var (
 				return
 			}
 
-			AddAngel(&Angel{
+			if err := AddAngel(&Angel{
 				Name:          i.Member.Nick,
 				UserID:        i.Member.User.ID,
 				ServerID:      serverID,
 				MinecraftName: minecraftName,
-			})
+			}); err != nil {
+				log.Error().
+					Err(err).
+					Msg("failed to add angel")
+				return
+			}
 
 			log.Info().
 				Str("minecraft-name", minecraftName).
@@ -266,6 +284,26 @@ var (
 		},
 		"register/": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			serverID := strings.SplitAfter(i.MessageComponentData().CustomID, "/")[1]
+			server, err := GetServer(serverID)
+			if err != nil {
+				log.Error().
+					Err(err).
+					Msg("failed to get server")
+				return
+			}
+			if server == nil {
+				log.Error().
+					Err(err).
+					Msg("server not found")
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Link is not longer valid",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+				return
+			}
 			alreadyRegistered, err := DoesAngelExistWithUserID(serverID, i.Member.User.ID)
 			if err != nil {
 				log.Error().
@@ -311,6 +349,26 @@ var (
 		},
 		"update/": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			serverID := strings.SplitAfter(i.MessageComponentData().CustomID, "/")[1]
+			server, err := GetServer(serverID)
+			if err != nil {
+				log.Error().
+					Err(err).
+					Msg("failed to get server")
+				return
+			}
+			if server == nil {
+				log.Error().
+					Err(err).
+					Msg("server not found")
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Link is not longer valid",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+				return
+			}
 			alreadyRegistered, err := DoesAngelExistWithUserID(serverID, i.Member.User.ID)
 			if err != nil {
 				log.Error().
