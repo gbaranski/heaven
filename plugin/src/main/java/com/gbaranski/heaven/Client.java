@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
 import java.util.AbstractMap;
-import java.util.UUID;
 
 public class Client {
     URL getURL() {
@@ -18,7 +17,9 @@ public class Client {
 
     @Nullable
     public Angel fetchAngel(String minecraftName) throws IOException, URISyntaxException {
-        final URI uri = getURL().toURI().resolve("./angel/by-minecraft-name/" + minecraftName);
+        final var path = String.format("/%s/by-minecraft-name/%s", Main.get().getStorage().getServerID(), minecraftName);
+        final var baseURL = getURL();
+        final var uri = new URI(baseURL.getProtocol(), baseURL.getAuthority(), baseURL.getPath() + path, null, null);
         HttpURLConnection con = (HttpURLConnection) uri.toURL().openConnection();
         con.setRequestProperty("Accept", "application/json");
         con.setRequestMethod("GET");
@@ -27,26 +28,30 @@ public class Client {
         JsonParser jp = new JsonParser();
         JsonElement element = jp.parse(new InputStreamReader(con.getInputStream()));
         Gson gson = new Gson();
-        return gson.fromJson(element, Angel.class);
+        final var angel = gson.fromJson(element, Angel.class);
+        con.disconnect();
+        return angel;
     }
 
     public AbstractMap.SimpleEntry<Boolean, String> authorize(String name, InetAddress address) throws IOException, URISyntaxException {
         URL baseURL = getURL();
-        String path = "angel/by-minecraft-name/" + name + "/authorize";
+        var path = String.format("/%s/by-minecraft-name/%s/authorize", Main.get().getStorage().getServerID(), name);
         String query = "from=" + address.getHostAddress();
 
-        URI newURI = new URI(baseURL.getProtocol(), baseURL.getAuthority(), baseURL.getPath() + path, query, null);
-        Main.get().getLogger().info(newURI.toString());
-        HttpURLConnection con = (HttpURLConnection) newURI.toURL().openConnection();
+        final var uri = new URI(baseURL.getProtocol(), baseURL.getAuthority(), baseURL.getPath() + path, query, null);
+        Main.get().getLogger().info(String.format("Authorize URI:%s", uri));
+        HttpURLConnection con = (HttpURLConnection) uri.toURL().openConnection();
         con.setRequestMethod("POST");
         con.connect();
         Main.get().getLogger().info(String.format("authorization of %s ended with status = %s", name, con.getResponseCode()));
-        return switch (con.getResponseCode()) {
+        final var result = switch (con.getResponseCode()) {
             case 200 -> new AbstractMap.SimpleEntry<>(true, "Login accepted from Discord");
             case 401 -> new AbstractMap.SimpleEntry<>(false, "Login denied from Discord");
             case 404 ->
                     new AbstractMap.SimpleEntry<>(false, "Not registered on Discord. Check if you're logging from a correct nickname.");
             default -> new AbstractMap.SimpleEntry<>(false, String.format("Unknown error: %s", con.getRequestMethod()));
         };
+        con.disconnect();
+        return result;
     }
 }

@@ -17,9 +17,11 @@ import java.util.Set;
 
 public class Storage {
     private URL serverURL;
+    private String serverID;
 
     public Storage() {
         serverURL = null;
+        serverID = null;
         try {
             this.reload();
         } catch (MalformedURLException e) {
@@ -32,10 +34,15 @@ public class Storage {
         Main.get().reloadConfig();
         final FileConfiguration config = Main.get().getConfig();
         serverURL = new URL(Objects.requireNonNull(config.getString("server-url")));
+        serverID = Objects.requireNonNull(config.getString("server-id"));
         Main.get().getLogger().info("Config reloaded");
     }
 
     public URL getServerURL() {
         return this.serverURL;
+    }
+
+    public String getServerID() {
+        return this.serverID;
     }
 }

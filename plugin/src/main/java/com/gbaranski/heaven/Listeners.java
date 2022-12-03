@@ -10,7 +10,6 @@ import org.bukkit.event.player.PlayerLoginEvent;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.AbstractMap;
 
 public class Listeners implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -21,7 +20,7 @@ public class Listeners implements Listener {
         String playerName = event.getName();
         try {
             Main.get().getLogger().info(String.format("Authorizing %s.", playerName));
-            final AbstractMap.SimpleEntry<Boolean, String> result = Main.get().getClient().authorize(playerName, event.getAddress());
+            final var result = Main.get().getClient().authorize(playerName, event.getAddress());
             final boolean isAuthorized = result.getKey();
             final String message = result.getValue();
             if (isAuthorized) {
@@ -45,7 +44,7 @@ public class Listeners implements Listener {
                 Main.get().getLogger().info(String.format("Angel with name %s not found", p.getName()));
                 e.disallow(PlayerLoginEvent.Result.KICK_WHITELIST, "User not on whitelist");
             } else {
-                final String nickname = ChatColor.translateAlternateColorCodes('&', String.format("&e%s&c(&6%s&c)&f", angel.discordName.replace(' ', '_'), p.getName()));
+                final String nickname = ChatColor.translateAlternateColorCodes('&', String.format("&e%s&c(&6%s&c)&f", angel.name.replace(' ', '_'), p.getName()));
                 p.setPlayerListName(nickname);
                 p.setDisplayName(nickname);
                 p.setCustomName(nickname);
