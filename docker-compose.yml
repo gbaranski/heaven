@@ -9,6 +9,9 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/heaven?sslmode=disable
       GIN_MODE: release
       PORT: 80
+    networks:
+      - default
+      - public
     depends_on:
       - db
 
@@ -23,6 +26,10 @@ services:
       - '5432:5432'
     volumes: 
       - db:/var/lib/postgresql/data
+
+networks:
+  public:
+    external: true
         
 volumes:
   db:
